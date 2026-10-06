@@ -1,0 +1,12 @@
+name: Vulnerable Unpinned Action
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Vulnerability: AL-LINT-001 (Mutable tag reference)
+      - uses: actions/checkout@v4
+      - name: Setup Node
+        # Mutable branch reference
+        uses: actions/setup-node@main

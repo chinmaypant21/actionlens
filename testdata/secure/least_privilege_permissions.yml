@@ -1,0 +1,13 @@
+name: Secure Least Privilege Permissions
+on: [issues]
+
+# Explicit root restriction: deny everything by default
+permissions: {}
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    permissions:
+      issues: read # Explicit granular scope
+    steps:
+      - run: echo "Triaging issue with read-only token"

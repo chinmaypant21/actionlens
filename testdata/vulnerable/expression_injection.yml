@@ -1,0 +1,14 @@
+name: Vulnerable Issue Processor
+on:
+  issues:
+    types: [opened, edited]
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Print issue title
+        # Vulnerability: AL-CODE-001 (Expression Injection)
+        # Direct interpolation of untrusted input into bash script sink
+        run: |
+          echo "Processing issue: ${{ github.event.issue.title }}"

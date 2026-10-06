@@ -1,0 +1,11 @@
+name: Vulnerable Default Excessive Permissions
+on: [issues]
+
+# Missing top-level 'permissions' block defaults to broad repository write token on permissive repositories
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    permissions: write-all # Excessive grant
+    steps:
+      - run: echo "Triaging issue"
