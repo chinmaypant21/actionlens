@@ -72,37 +72,60 @@ This design is a practical compromise based on existing open-source tooling and 
 
 ---
 
-## 4. Normalized AST JSON Contract
+## 4. End-to-End Walkthrough (Example)
 
-The Go parser emits a structured JSON object containing all contextual information needed by Python:
+Here is a concrete walkthrough showing how the two in-scope MVP vulnerabilities are parsed, analyzed, and reported.
+
+### Step 1: Input Workflow (`.github/workflows/ci.yml`)
+
+```yaml
+name: Ecample Workflow
+on: issue_comment
+
+jobs:
+  process:
+    runs-on: ubuntu-latest
+    steps:
+      # Vuln 1: AL-LINT-001 (Unpinned third-party action)
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Vuln 2: AL-CODE-001 (Script / Expression injection)
+      - name: Echo Comment
+        run: echo "${{ github.event.comment.body }}"
+```
+
+---
+
+### Step 2: Go Parser Output (`actionlens-parser` JSON)
+
+The Go parser reads the YAML, parses the `${{ }}` expression AST using `actionlint`, and emits normalized JSON:
 
 ```json
 {
-  "workflow_name": "CI",
   "file_path": ".github/workflows/ci.yml",
-  "triggers": ["issue_comment", "pull_request"],
-  "permissions": {
-    "contents": "read",
-    "issues": "write"
-  },
+  "workflow_name": "Triage Workflow",
+  "triggers": ["issue_comment"],
   "jobs": [
     {
-      "id": "triage",
-      "runs_on": ["ubuntu-latest"],
-      "permissions": null,
+      "id": "process",
       "steps": [
         {
-          "id": "run_script",
-          "name": "Process Comment",
-          "uses": "",
+          "line": 9,
+          "uses": "actions/checkout@v4",
+          "run": null,
+          "env": {},
+          "expressions": []
+        },
+        {
+          "line": 13,
+          "uses": null,
           "run": "echo \"${{ github.event.comment.body }}\"",
           "env": {},
-          "line_number": 16,
           "expressions": [
             {
               "raw": "${{ github.event.comment.body }}",
-              "context_path": "github.event.comment.body",
-              "is_untrusted": true
+              "context": "github.event.comment.body"
             }
           ]
         }
@@ -110,6 +133,40 @@ The Go parser emits a structured JSON object containing all contextual informati
     }
   ]
 }
+```
+
+---
+
+### Step 3: Python Analyzer Step
+
+Python loads the JSON and runs registered rules:
+
+1. **Lint Check (`AL-LINT-001`):** Inspects `step.uses`. Detects that `@v4` is not a 40-character commit SHA.
+2. **Taint Check (`AL-CODE-001`):** Inspects `step.run` and finds untrusted source `github.event.comment.body`. Uses NetworkX to confirm the value was interpolated directly into the script rather than passed through `step.env`.
+
+---
+
+### Step 4: Final Output (Findings)
+
+```json
+[
+  {
+    "rule_id": "AL-LINT-001",
+    "severity": "MEDIUM",
+    "file_path": ".github/workflows/ci.yml",
+    "line": 9,
+    "message": "Action 'actions/checkout@v4' is unpinned (uses mutable tag instead of commit SHA).",
+    "remediation": "Pin the action to a full 40-character commit SHA."
+  },
+  {
+    "rule_id": "AL-CODE-001",
+    "severity": "HIGH",
+    "file_path": ".github/workflows/ci.yml",
+    "line": 13,
+    "message": "Untrusted expression 'github.event.comment.body' interpolated directly into shell script sink.",
+    "remediation": "Pass the context value via an environment variable ('env:') and reference '$VAR' in the script."
+  }
+]
 ```
 
 ---
@@ -152,44 +209,7 @@ actionlens/
 
 ---
 
-## 6. How to Implement a New Detection Rule in Python
-
-All rules inherit from the base `Rule` class and register under `actionlens/sast/rules/`:
-
-### Example: Security Lint Rule (`AL-LINT-001`)
-
-```python
-from actionlens.models import Rule, Finding, Severity, WorkflowAST
-
-class UnpinnedActionRule(Rule):
-    id = "AL-LINT-001"
-    name = "Unpinned Third-Party Action"
-    severity = Severity.MEDIUM
-    description = "Third-party actions should be pinned to full 40-character commit SHAs."
-
-    def check(self, ast: WorkflowAST) -> list[Finding]:
-        findings = []
-        for job in ast.jobs:
-            for step in job.steps:
-                if step.uses and not step.uses.startswith("./"):
-                    # Check if reference is pinned to a 40-character SHA
-                    ref = step.uses.split("@")[-1] if "@" in step.uses else ""
-                    if len(ref) != 40 or not all(c in "0123456789abcdefABCDEF" for c in ref):
-                        findings.append(
-                            Finding(
-                                rule_id=self.id,
-                                file_path=ast.file_path,
-                                line_number=step.line_number,
-                                message=f"Action '{step.uses}' is pinned to mutable tag/branch instead of full commit SHA.",
-                                remediation="Pin the action to a full 40-character commit SHA with version comment."
-                            )
-                        )
-        return findings
-```
-
----
-
-## 7. Local Setup & Testing
+## 6. Local Setup & Testing
 
 ### 1. Build the Go Parser Frontend
 ```bash
