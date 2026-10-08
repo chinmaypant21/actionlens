@@ -1,0 +1,23 @@
+# Status: SECURE
+# Rule: AL-CODE-001 (Script / Expression Injection in Action Input)
+# Secure: Untrusted payload is read through JavaScript context API ('context.payload.comment.body')
+#         as data at runtime, instead of being string-interpolated into executable code.
+
+name: Secure Action Input
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process Comment
+        uses: actions/github-script@60a0d83039c74a4aee543508d2ffcb1c3799cdea # v7.0.1
+        with:
+          script: |
+            const comment = context.payload.comment.body;
+            console.log(comment);

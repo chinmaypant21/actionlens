@@ -1,13 +1,17 @@
+# Status: SECURE
+# Rule: AL-LINT-002 (Missing Default Permissions), AL-CODE-002 (Excessive Token Permissions)
+# Secure: Top-level 'permissions: {}' denies all permissions by default;
+#         job requests only minimal scope required ('issues: read').
+
 name: Secure Least Privilege Permissions
 on: [issues]
 
-# Explicit root restriction: deny everything by default
 permissions: {}
 
 jobs:
   triage:
     runs-on: ubuntu-latest
     permissions:
-      issues: read # Explicit granular scope
+      issues: read
     steps:
       - run: echo "Triaging issue with read-only token"

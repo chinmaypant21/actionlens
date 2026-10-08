@@ -1,0 +1,24 @@
+# Status: VULNERABLE
+# Rule: AL-CODE-003 (Untrusted Checkout via pull_request_target)
+# Insecure: Runs in privileged 'pull_request_target' context but explicitly checks out
+#           the untrusted PR head commit ('${{ github.event.pull_request.head.sha }}').
+#           Any subsequent build steps run untrusted code with repository secrets/tokens.
+
+name: Untrusted PR Checkout
+on:
+  pull_request_target:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR Head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+      - name: Run build script
+        run: npm test

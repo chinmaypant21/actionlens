@@ -1,3 +1,8 @@
+# Status: VULNERABLE
+# Rule: AL-LINT-001 (Unpinned Third-Party Action)
+# Insecure: References mutable tags ('@v4') and mutable branches ('@main').
+#           A compromised tag or upstream repo can lead to supply chain attacks.
+
 name: Vulnerable Unpinned Action
 on: [push]
 
@@ -5,8 +10,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # Vulnerability: AL-LINT-001 (Mutable tag reference)
       - uses: actions/checkout@v4
       - name: Setup Node
-        # Mutable branch reference
         uses: actions/setup-node@main

@@ -1,3 +1,8 @@
+# Status: SECURE
+# Rule: AL-LINT-001 (Unpinned Third-Party Action)
+# Secure: Actions are pinned to full 40-character immutable Git commit SHAs,
+#         preventing unauthorized or malicious upstream changes.
+
 name: Secure Pinned Action
 on: [push]
 
@@ -7,7 +12,6 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # Remediated: Pinned to full 40-character commit SHA
       - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
       - name: Setup Node
         uses: actions/setup-node@60edb5dd545a775178f5252478332d7967a14ecf # v4.0.2

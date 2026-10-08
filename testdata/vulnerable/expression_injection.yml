@@ -1,3 +1,8 @@
+# Status: VULNERABLE
+# Rule: AL-CODE-001 (Script / Expression Injection)
+# Insecure: Directly interpolates untrusted GitHub context (${{ github.event.issue.title }})
+#           into inline bash script ('run:'). An attacker can inject arbitrary shell commands.
+
 name: Vulnerable Issue Processor
 on:
   issues:
@@ -8,7 +13,5 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Print issue title
-        # Vulnerability: AL-CODE-001 (Expression Injection)
-        # Direct interpolation of untrusted input into bash script sink
         run: |
           echo "Processing issue: ${{ github.event.issue.title }}"

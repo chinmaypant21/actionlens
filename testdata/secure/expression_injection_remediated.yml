@@ -1,3 +1,8 @@
+# Status: SECURE
+# Rule: AL-CODE-001 (Script / Expression Injection)
+# Secure: Untrusted input is assigned to an intermediate environment variable ('env: ISSUE_TITLE').
+#         The shell accesses '$ISSUE_TITLE' as data, preventing arbitrary code injection.
+
 name: Secure Issue Processor
 on:
   issues:
@@ -11,7 +16,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Print issue title safely
-        # Remediated: untrusted input passed via intermediate environment variable
         env:
           ISSUE_TITLE: ${{ github.event.issue.title }}
         run: |

@@ -6,6 +6,10 @@ __pycache__/
 # C extensions
 *.so
 
+# Go binaries
+actionlens-parser
+parser/actionlens-parser
+
 # Distribution / packaging
 .Python
 build/

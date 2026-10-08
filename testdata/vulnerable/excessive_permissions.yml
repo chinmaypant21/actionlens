@@ -1,7 +1,10 @@
+# Status: VULNERABLE
+# Rule: AL-LINT-002 (Missing Default Permissions), AL-CODE-002 (Excessive Token Permissions)
+# Insecure: Missing top-level 'permissions' block defaults to broad repository write token;
+#           job explicitly requests 'write-all'.
+
 name: Vulnerable Default Excessive Permissions
 on: [issues]
-
-# Missing top-level 'permissions' block defaults to broad repository write token on permissive repositories
 
 jobs:
   triage:

@@ -1,0 +1,23 @@
+# Status: VULNERABLE
+# Rule: AL-CODE-001 (Script / Expression Injection in Action Input)
+# Insecure: Directly interpolates untrusted GitHub context (${{ github.event.comment.body }})
+#           inside 'with.script' of actions/github-script, allowing JavaScript evaluation injection.
+
+name: Vulnerable Action Input Injection
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Process Comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const comment = "${{ github.event.comment.body }}";
+            console.log(comment);
