@@ -25,7 +25,7 @@ flowchart TD
     Findings --> StaticReport["📊 Static Security Report"]
 
     %% Stage 2: DAST
-    subgraph DAST["2. Dynamic Verification (DAST)"]
+    subgraph DAST["2. Dynamic Verification (DAST) - Future Scope"]
         direction TB
         Trigger["🚀 Test Orchestrator<br/>Triggers test workflow via GitHub API<br/>with a safe canary payload"]
         Trigger --> Logs["📜 Log & Trace Verifier<br/>Inspects workflow runner execution logs<br/>to confirm if canary executed"]
@@ -97,6 +97,8 @@ Using **NetworkX** (`networkx.DiGraph`), ActionLens constructs a **Taint Flow Gr
 - **Vulnerability Condition:** A path exists in the directed graph from an untrusted **Source** node to an execution **Sink** node without passing through a designated **Sanitizer**.
 
 ---
+
+# (Future Scope)
 
 ## 3. DAST Verification Subsystem (`actionlens/dast/`)
 

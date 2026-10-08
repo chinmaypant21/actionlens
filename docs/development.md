@@ -43,7 +43,7 @@ This design is a practical compromise based on existing open-source tooling and 
 * **Team familiarity:** The team is more comfortable researching and writing code in Python.
 * **Graph modeling:** [`networkx`](https://networkx.org/) offers straightforward directed graph data structures and path algorithms for taint tracking (finding paths from untrusted sources to execution sinks).
 * **Rule authoring:** Rules can be added, tested, and modified in Python without recompiling binaries.
-* **DAST scripting:** Triggering GitHub API workflows and searching raw runner logs for canary tokens is straightforward to script in Python using `PyGithub` / `httpx` and regular expressions.
+* **DAST scripting:** Triggering GitHub API workflows and searching raw runner logs for canary tokens is straightforward to script in Python using `PyGithub` / `httpx` and regular expressions. (future scope)
 
 ### 3. Trade-offs of This Approach
 * **Two runtime environments:** Contributors need both Go (to build the parser) and Python (to run the scanner and tests).
@@ -79,8 +79,8 @@ Here is a concrete walkthrough showing how the two in-scope MVP vulnerabilities 
 ### Step 1: Input Workflow (`.github/workflows/ci.yml`)
 
 ```yaml
-name: Ecample Workflow
-on: issue_comment
+name: Example Workflow
+on: [issue_comment]
 
 jobs:
   process:
@@ -104,34 +104,51 @@ The Go parser reads the YAML, parses the `${{ }}` expression AST using `actionli
 ```json
 {
   "file_path": ".github/workflows/ci.yml",
-  "workflow_name": "Triage Workflow",
-  "triggers": ["issue_comment"],
+  "name": "Example Workflow",
+  "triggers": [
+    {
+      "event": "issue_comment"
+    }
+  ],
   "jobs": [
     {
       "id": "process",
+      "runs_on": {
+        "labels": [
+          "ubuntu-latest"
+        ],
+        "pos": {..}
+      },
       "steps": [
         {
-          "line": 9,
-          "uses": "actions/checkout@v4",
-          "run": null,
-          "env": {},
-          "expressions": []
+          "name": "Checkout Code",
+          "exec_type": "action",
+          "uses": {
+            "raw": "actions/checkout@v4",
+            "owner": "actions",
+            "repo": "checkout",
+            "ref": "v4",
+            "is_sha": false
+          },
+          "pos": {..}
         },
         {
-          "line": 13,
-          "uses": null,
+          "name": "Echo Comment",
+          "exec_type": "run",
           "run": "echo \"${{ github.event.comment.body }}\"",
-          "env": {},
           "expressions": [
             {
-              "raw": "${{ github.event.comment.body }}",
-              "context": "github.event.comment.body"
+              "context": "github.event.comment.body",
+              "location": "run"
             }
-          ]
+          ],
+		  "pos": {..}
         }
-      ]
+      ],
+	  "pos": {..}
     }
-  ]
+  ],
+  "pos": {..}
 }
 ```
 
@@ -181,7 +198,11 @@ actionlens/
 │   ├── vulnerability-matrix.md# Catalog of targeted vulnerabilities & statuses
 │   └── development.md         # This development guide
 ├── parser/                    # Go Parser Frontend
-│   ├── main.go                # actionlint wrapper; outputs normalized AST JSON
+│   ├── main.go                # CLI entry point; reads YAML, emits JSON
+│   ├── models.go              # Normalized AST structs (WorkflowAST, StepAST, etc.)
+│   ├── parser.go              # actionlint AST converter with deterministic ordering
+│   ├── expression.go          # Expression tokenizer & action reference parser
+│   ├── parser_test.go         # Test suite running against testdata/
 │   ├── go.mod
 │   └── go.sum
 ├── actionlens/                # Python Core Engine ("Brain")
@@ -211,10 +232,11 @@ actionlens/
 
 ## 6. Local Setup & Testing
 
-### 1. Build the Go Parser Frontend
+### 1. Build and Test the Go Parser Frontend
 ```bash
 cd parser
-go build -o ../bin/actionlens-parser main.go
+go test -v ./...
+go build -o actionlens-parser .
 cd ..
 ```
 
