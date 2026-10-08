@@ -1,0 +1,52 @@
+{
+  "file_path": "",
+  "name": "Vulnerable Issue Processor",
+  "triggers": [
+    {
+      "event": "issues",
+      "types": [
+        "opened",
+        "edited"
+      ]
+    }
+  ],
+  "jobs": [
+    {
+      "id": "triage",
+      "runs_on": {
+        "labels": [
+          "ubuntu-latest"
+        ],
+        "pos": {
+          "line": 0,
+          "col": 0
+        }
+      },
+      "steps": [
+        {
+          "name": "Print issue title",
+          "exec_type": "run",
+          "run": "echo \"Processing issue: ${{ github.event.issue.title }}\"\n",
+          "expressions": [
+            {
+              "context": "github.event.issue.title",
+              "location": "run"
+            }
+          ],
+          "pos": {
+            "line": 15,
+            "col": 9
+          }
+        }
+      ],
+      "pos": {
+        "line": 12,
+        "col": 3
+      }
+    }
+  ],
+  "pos": {
+    "line": 0,
+    "col": 0
+  }
+}
