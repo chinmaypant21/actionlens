@@ -1,0 +1,67 @@
+{
+  "file_path": "",
+  "name": "Taint Analysis Example",
+  "triggers": [
+    {
+      "event": "pull_request_target",
+      "types": [
+        "opened"
+      ]
+    }
+  ],
+  "jobs": [
+    {
+      "id": "build",
+      "runs_on": {
+        "labels": [
+          "ubuntu-latest"
+        ],
+        "pos": {
+          "line": 0,
+          "col": 0
+        }
+      },
+      "steps": [
+        {
+          "id": "capture",
+          "name": "Capture PR Data",
+          "exec_type": "run",
+          "run": "echo \"pr_title=${{ github.event.pull_request.title }}\" \u003e\u003e $GITHUB_OUTPUT",
+          "expressions": [
+            {
+              "context": "github.event.pull_request.title",
+              "location": "run"
+            }
+          ],
+          "pos": {
+            "line": 10,
+            "col": 9
+          }
+        },
+        {
+          "name": "Execute Build",
+          "exec_type": "run",
+          "run": "./build.sh --title \"${{ steps.capture.outputs.pr_title }}\"",
+          "expressions": [
+            {
+              "context": "steps.capture.outputs.pr_title",
+              "location": "run"
+            }
+          ],
+          "pos": {
+            "line": 14,
+            "col": 9
+          }
+        }
+      ],
+      "pos": {
+        "line": 7,
+        "col": 3
+      }
+    }
+  ],
+  "pos": {
+    "line": 0,
+    "col": 0
+  }
+}
