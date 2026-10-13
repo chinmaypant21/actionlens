@@ -6,6 +6,7 @@ from typing import Union
 from actionlens.models import Finding, Rule, WorkflowAST
 from actionlens.parser import load_ast_json, parse_workflow_file
 from actionlens.reporting.formatter import format_cli_table, format_findings_json
+from actionlens.sast.rules.lint.permissions_block import PermissionsBlockRule
 from actionlens.sast.rules.lint.unpinned_action import UnpinnedActionRule
 from actionlens.sast.rules.lint.untrusted_namespace import UntrustedNamespaceRule
 
@@ -13,11 +14,17 @@ from actionlens.sast.rules.lint.untrusted_namespace import UntrustedNamespaceRul
 class SASTOrchestrator:
     """Central engine orchestrator that executes registered SAST rules against workflow ASTs."""
 
+
+# 
+# ---------- TODO ---------
+# Move IDs outside of rule classes to an object 
+#
     def __init__(self):
         """Initialize orchestrator with all active detection rules."""
         self.rules: list[Rule] = [
             UnpinnedActionRule(),
             UntrustedNamespaceRule(),
+            PermissionsBlockRule(),
             # Add future rules here
         ]
 

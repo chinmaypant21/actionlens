@@ -56,14 +56,14 @@ def test_orchestrator_end_to_end_report():
     data = json.loads(json_report)
 
     assert isinstance(data, list)
-    assert len(data) == 4
+    assert len(data) == 5
 
     rule_ids = {item["rule_id"] for item in data}
-    assert rule_ids == {"AL-LINT-001", "AL-LINT-002"}
+    assert rule_ids == {"AL-LINT-001", "AL-LINT-002", "AL-LINT-003"}
 
     for item in data:
-        assert item["rule_id"] in {"AL-LINT-001", "AL-LINT-002"}
-        assert item["severity"] in {"HIGH", "MEDIUM"}
+        assert item["rule_id"] in {"AL-LINT-001", "AL-LINT-002", "AL-LINT-003"}
+        assert item["severity"] in {"HIGH", "MEDIUM", "LOW"}
         assert "file_path" in item
         assert "line" in item
         assert "message" in item
