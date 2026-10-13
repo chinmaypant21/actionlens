@@ -1,0 +1,15 @@
+# Status: VULNERABLE
+# Rule: AL-LINT-002 (Compromised/Untrusted Action Namespace)
+# Insecure: References 'actons/checkout@v4' which is a typo-squatted namespace of 'actions/checkout'
+
+name: Vulnerable Untrusted Namespace Workflow
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Malicious Checkout Typo-squat
+        uses: actons/checkout@v4
+      - name: Fake Setup Python
+        uses: evil-actor/setup-python@v1

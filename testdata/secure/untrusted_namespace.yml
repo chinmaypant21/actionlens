@@ -1,0 +1,15 @@
+# Status: SECURE
+# Rule: AL-LINT-002 (Compromised/Untrusted Action Namespace)
+# Secure: Uses official, verified namespaces ('actions/checkout', 'actions/setup-python')
+
+name: Secure Action Namespace Workflow
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trusted Checkout
+        uses: actions/checkout@v4
+      - name: Trusted Setup Python
+        uses: actions/setup-python@v5
