@@ -6,6 +6,7 @@ from typing import Union
 from actionlens.models import Finding, Rule, WorkflowAST
 from actionlens.parser import load_ast_json, parse_workflow_file
 from actionlens.reporting.formatter import format_cli_table, format_findings_json
+from actionlens.sast.rules.lint.unpinned_action import UnpinnedActionRule
 from actionlens.sast.rules.lint.untrusted_namespace import UntrustedNamespaceRule
 
 
@@ -15,6 +16,7 @@ class SASTOrchestrator:
     def __init__(self):
         """Initialize orchestrator with all active detection rules."""
         self.rules: list[Rule] = [
+            UnpinnedActionRule(),
             UntrustedNamespaceRule(),
             # Add future rules here
         ]
