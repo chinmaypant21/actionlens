@@ -9,6 +9,7 @@ from actionlens.reporting.formatter import format_cli_table, format_findings_jso
 from actionlens.sast.rules.lint.permissions_block import PermissionsBlockRule
 from actionlens.sast.rules.lint.unpinned_action import UnpinnedActionRule
 from actionlens.sast.rules.lint.untrusted_namespace import UntrustedNamespaceRule
+from actionlens.sast.rules.taint_analysis.script_injection import ScriptInjectionRule
 
 
 class SASTOrchestrator:
@@ -25,6 +26,7 @@ class SASTOrchestrator:
             UnpinnedActionRule(),
             UntrustedNamespaceRule(),
             PermissionsBlockRule(),
+            ScriptInjectionRule(),
             # Add future rules here
         ]
 
