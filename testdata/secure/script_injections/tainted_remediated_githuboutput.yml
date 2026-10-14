@@ -1,0 +1,13 @@
+name: n tainted env
+on: pull_request_target
+jobs:
+  j:
+    runs-on: ubuntu-latest
+    steps:
+      - id: x
+        env:
+          TITLE: ${{ github.event.pull_request.title }}     # SOURCE
+        run: echo "out=$TITLE" >> "$GITHUB_OUTPUT"          # PROPAGATOR
+      - env:
+          out: ${{ steps.x.outputs.out }}                   # SANITIZER
+        run: echo "Value $OUT"                              # SINK

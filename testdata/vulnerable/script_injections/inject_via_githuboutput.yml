@@ -1,0 +1,11 @@
+name: p tainted direct
+on: pull_request_target
+jobs:
+  j:
+    runs-on: ubuntu-latest
+    steps:
+      - id: x
+        env:
+          TITLE: ${{ github.event.pull_request.title }}     # SOURCE
+        run: echo "out=$TITLE" >> "$GITHUB_OUTPUT"          # PROPAGATOR 
+      - run: echo "Value ${{ steps.x.outputs.out }}"        # SINK 

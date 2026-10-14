@@ -1,0 +1,11 @@
+name: b2 clean env
+on: pull_request_target
+jobs:
+  j:
+    runs-on: ubuntu-latest
+    steps:
+      - id: x
+        run: echo "y=$(date +%Y%m%d)" >> "$GITHUB_OUTPUT" # no tainted SOURCE
+      - env:
+          Y: ${{ steps.x.outputs.y }}                     # SANITIZER
+        run: echo "Value $Y"                              # SINK

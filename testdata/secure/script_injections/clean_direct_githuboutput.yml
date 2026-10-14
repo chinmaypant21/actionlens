@@ -1,0 +1,9 @@
+name: n clean direct
+on: pull_request_target
+jobs:
+  j:
+    runs-on: ubuntu-latest
+    steps:
+      - id: x
+        run: echo "out=$(date +%Y%m%d)" >> "$GITHUB_OUTPUT" # no tainted SOURCE
+      - run: echo "Value ${{ steps.x.outputs.out }}"        # SINK
