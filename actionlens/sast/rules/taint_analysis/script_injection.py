@@ -6,10 +6,15 @@ Detects untrusted user input being passed to a script execution context
 
 from typing import Optional, Set, Any
 from actionlens.models import Finding, Rule, RuleCategory, Severity, WorkflowAST
-from taint_graph import TaintGraph, NodeType
-from visualization import visualize_graph
 import re
 import networkx as nx
+
+try:
+    from .taint_graph import TaintGraph, NodeType
+    from .visualization import visualize_graph
+except ImportError:
+    from taint_graph import TaintGraph, NodeType
+    from visualization import visualize_graph
 
 # User manipulated contexts that may be used to inject malicious scripts or commands into a workflow
 UNTRUSTED_CONTEXTS: set[str] = {
@@ -90,12 +95,13 @@ class ScriptInjectionRule(Rule):
     )
 
     def __init__(
-            self, visualize: bool = False
+            self, visualize_path: str | None = None
     ):
-        """Initialize the rule.
-        If visualize is True, a taint-flow graph will be generated
-        at taint_graph.html """
-        self.visualize = visualize
+        """
+        Initialize the rule.
+        If visualize_path is True, a taint-flow graph will be generated the specified path.
+        """
+        self.visualize_path = visualize_path
 
     def check(self, ast: WorkflowAST) -> list[Finding]:
         findings: list[Finding] = []
@@ -112,8 +118,8 @@ class ScriptInjectionRule(Rule):
                 message="Untrusted user input is being passed to a script execution context.",
                 remediation=self.remediation
             ))
-        if self.visualize:
-            visualize_graph(taint_graph, output_path="taint_graph.html")
+        if self.visualize_path:
+            visualize_graph(taint_graph, output_path=self.visualize_path)
         return findings
 
 def build_taint_graph(ast: WorkflowAST) -> tuple[TaintGraph, dict[str, int]]:
@@ -131,7 +137,6 @@ def build_taint_graph(ast: WorkflowAST) -> tuple[TaintGraph, dict[str, int]]:
 
         for step_index, step in enumerate(job.steps):
             step_name = step.id or step.name or f"step-{step_index}"
-            step_label = f"{job_id}/{step_name}"
 
             # ---- (1): Find references to variables in execution script ----
             # Supported exec types are "run" and "action" (with.script, with.ref)
@@ -143,19 +148,35 @@ def build_taint_graph(ast: WorkflowAST) -> tuple[TaintGraph, dict[str, int]]:
                     execution_label = f"{step_name}.run"
 
                 case "action":
-                    execution = step.with_.get("script", "")
-                    execution_label = f"{step_name}.with.script"
-                    # TODO find either with.script or with.ref
+                    if step.with_.get("script", ""):
+                        execution = step.with_.get("script", "")
+                        execution_label = f"{step_name}.with.script"
+                    elif step.with_.get("ref", ""):
+                        execution = step.with_.get("ref", "")
+                        execution_label = f"{step_name}.with.ref"
+                    else:
+                        execution = ""
+                        execution_label = f"{step_name}.with.unknown_exec_type"
+                        # TODO error
 
                 case _:
                     execution = ""
                     execution_label = f"{step_name}.unknown_exec_type"
                     # TODO error
+
             # Create nodes for usage of untrusted contexts in the execution environment
             untrusted_context_variables = find_source(execution) or []
             for ucv in untrusted_context_variables:
                 graph.add_flow(NodeType.SINK, execution_label,
                                NodeType.SOURCE, ucv)
+            used_env_variables = [
+                f"env.{name.lower()}"
+                for name in re.findall(r"\$([A-Za-z_][A-Za-z0-9_]*)", execution)
+                if name != "GITHUB_OUTPUT"
+            ]
+            for uev in used_env_variables:
+                graph.add_flow(NodeType.SINK, execution_label,
+                               NodeType.SANITIZER, uev)
             write_to_githuboutput = extract_write_to_githuboutput(execution)
             if write_to_githuboutput:
                 output_name = write_to_githuboutput[0]
