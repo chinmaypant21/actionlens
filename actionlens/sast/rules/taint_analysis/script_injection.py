@@ -1,4 +1,4 @@
-"""AL_CODE-001 Script Injection (RCE)
+"""AL-CODE-001 Script Injection (RCE)
 
 Detects untrusted user input being passed to a script execution context 
 (e.g., shell commands, Python scripts, etc.) without proper sanitization or validation.
@@ -73,9 +73,9 @@ def extract_write_to_githuboutput(line: str) -> tuple[str, list[str]] | None:
     return m.group('name'), vars_
 
 class ScriptInjectionRule(Rule):
-    """AL_CODE-001: Detect untrusted user input being passed to script execution contexts."""
+    """AL-CODE-001: Detect untrusted user input being passed to script execution contexts."""
 
-    rule_id: str = "AL_CODE-001"
+    rule_id: str = "AL-CODE-001"
     name: str = "Script Injection (RCE)"
     severity: Severity = Severity.HIGH
     category: RuleCategory = RuleCategory.CODE_ANALYSIS
