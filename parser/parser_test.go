@@ -7,7 +7,7 @@ import (
 )
 
 func TestParseWorkflow_ExpressionInjection(t *testing.T) {
-	path := filepath.Join("..", "testdata", "vulnerable", "expression_injection.yml")
+	path := filepath.Join("..", "testdata", "vulnerable", "script_injections", "expression_injection.yml")
 	content, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("failed reading testdata: %v", err)
@@ -51,7 +51,7 @@ func TestParseWorkflow_ExpressionInjection(t *testing.T) {
 }
 
 func TestParseWorkflow_ExpressionInjectionRemediated(t *testing.T) {
-	path := filepath.Join("..", "testdata", "secure", "expression_injection_remediated.yml")
+	path := filepath.Join("..", "testdata", "secure", "script_injections", "expression_injection_remediated.yml")
 	content, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("failed reading testdata: %v", err)
@@ -128,7 +128,7 @@ func TestParseWorkflow_UnpinnedActionPinned(t *testing.T) {
 }
 
 func TestParseWorkflow_ActionInputInjection(t *testing.T) {
-	path := filepath.Join("..", "testdata", "vulnerable", "script_injection_with.yml")
+	path := filepath.Join("..", "testdata", "vulnerable", "script_injections", "script_injection_with.yml")
 	content, err := os.ReadFile(path)
 	if err != nil {
 		t.Fatalf("failed reading testdata: %v", err)

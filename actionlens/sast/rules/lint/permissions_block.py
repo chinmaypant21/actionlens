@@ -1,18 +1,13 @@
-"""AL-LINT-003: Missing or Over-scoped Permissions Block.
-
-Detects workflows missing a top-level 'permissions:' block (defaulting GITHUB_TOKEN
-to broad read/write access), or workflows/jobs granting broad 'write-all' permissions.
-"""
+"""AL-LINT-003: Missing or Over-scoped Permissions Block."""
 
 from actionlens.models import Finding, Rule, RuleCategory, Severity, WorkflowAST
-
 
 class PermissionsBlockRule(Rule):
     """AL-LINT-003: Flags missing top-level permissions or broad 'write-all' token access."""
 
     rule_id: str = "AL-LINT-003"
     name: str = "Missing or Over-scoped Permissions Block"
-    severity: Severity = Severity.LOW
+    severity: Severity = Severity.LOW #default val
     category: RuleCategory = RuleCategory.LINT
     description: str = "The workflow lacks a top-level permissions: block (defaulting GITHUB_TOKEN to broad repository permissions), or explicitly grants broad 'write-all' access."
     cwe: str = "CWE-276"  # Incorrect Default Permissions
@@ -52,11 +47,14 @@ class PermissionsBlockRule(Rule):
         # Check 2: Inspect individual jobs for 'write-all'
         for job in ast.jobs:
             if job.permissions and job.permissions.all == "write-all":
-                line_num = (
-                    job.permissions.pos.line
-                    if job.permissions.pos and job.permissions.pos.line > 0
-                    else (job.pos.line if job.pos.line > 0 else 1)
-                )
+                
+                if job.permissions.pos and job.permissions.pos.line > 0:
+                    line_num = job.permissions.pos.line
+                elif job.pos.line > 0:
+                    line_num = job.pos.line
+                else:
+                    line_num = 1
+
                 findings.append(
                     Finding(
                         rule_id=self.rule_id,

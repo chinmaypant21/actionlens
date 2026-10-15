@@ -1,0 +1,20 @@
+# Status: VULNERABLE
+# Rule: AL-LINT-004 (Unsafe Self-Hosted Runner Usage)
+# Insecure: Selects self-hosted runner for a workflow triggered by pull_request events.
+
+name: Vulnerable Self-Hosted Runner Workflow
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: [self-hosted, linux]
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Run Build
+        run: echo "Building..."

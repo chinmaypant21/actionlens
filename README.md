@@ -131,6 +131,7 @@ actionlens/
 │   ├── parser.py              # Invokes parser binary and loads AST JSON
 │   ├── models.py              # Pydantic schemas (AST, Rules, Findings)
 │   ├── sast/                  # SAST orchestrator, lint rules & taint engine
+│   ├── utils/                 # Helper utilities
 │   └── reporting/             # Console and JSON formatters
 ├── testdata/                  # Test workflows (benign & vulnerable samples)
 │   ├── vulnerable/            # Vulnerable workflow samples for regression tests

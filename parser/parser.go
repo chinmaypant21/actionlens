@@ -165,6 +165,13 @@ func parseJob(j *actionlint.Job) JobAST {
 
 	if j.RunsOn != nil {
 		rc := &RunnerConfig{}
+		if len(j.RunsOn.Labels) > 0 && j.RunsOn.Labels[0] != nil && j.RunsOn.Labels[0].Pos != nil {
+			rc.Pos = SourcePosition{Line: j.RunsOn.Labels[0].Pos.Line, Col: j.RunsOn.Labels[0].Pos.Col}
+		} else if j.RunsOn.Group != nil && j.RunsOn.Group.Pos != nil {
+			rc.Pos = SourcePosition{Line: j.RunsOn.Group.Pos.Line, Col: j.RunsOn.Group.Pos.Col}
+		} else if j.RunsOn.LabelsExpr != nil && j.RunsOn.LabelsExpr.Pos != nil {
+			rc.Pos = SourcePosition{Line: j.RunsOn.LabelsExpr.Pos.Line, Col: j.RunsOn.LabelsExpr.Pos.Col}
+		}
 		if j.RunsOn.Group != nil {
 			rc.Group = j.RunsOn.Group.Value
 		}
