@@ -49,8 +49,7 @@ flowchart TD
         Trigger["🚀 Test Orchestrator<br/>Triggers test workflow via GitHub API<br/>with a safe canary payload"]
         Trigger --> Logs["📜 Log & Trace Verifier<br/>Inspects workflow runner execution logs<br/>to confirm if canary executed"]
     end
-
-    Findings -. "Only exploitable vulns<br/><i>(e.g., Script Injection)</i>" .-> Trigger
+	Findings -. "Future Scope" .-> Trigger
     Logs --> Verified["✅ Verified Exploit Report<br/><i>Confirmed vulnerability with proof-of-concept</i>"]
 ```
 
@@ -79,7 +78,7 @@ cd ..
 ### 3. Set Up Python Environment
 Create and activate a virtual environment, then install dependencies and the package:
 ```bash
-python3 -m venv .venv
+python3.10 -m venv .venv # or python -m ... if using Python 3.10 or newer
 source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
@@ -111,39 +110,34 @@ pytest -v tests/
 ```text
 actionlens/
 ├── README.md                  # Project overview and roadmap
-├── docs/                      # Architectural specifications and research documentation
-│   ├── architecture.md        # Technical architecture (SAST & DAST layers)
-│   ├── vulnerability-matrix.md# Catalog of targeted vulnerabilities & statuses
-│   └── development.md         # Guide for implementing new rules and test cases
-├── parser/                    # Go-based AST parser frontend (actionlint wrapper)
+├── docs/                      # Architectural specifications & documentation
+│   ├── architecture.md        # Technical architecture
+│   ├── vulnerability-matrix.md# Catalog of targeted vulnerabilitie
+│   ├── development.md         # Development guideline and LLD
+│   └── rules/                 # Detection rule specifications
+├── parser/                    # Go-based AST parser (actionlint wrapper)
 │   ├── main.go                # Emits normalized AST JSON
+│   ├── parser.go              # Workflow and expression parser
+│   ├── models.go              # Normalized AST Go structs
 │   ├── go.mod
 │   └── go.sum
-├── actionlens/                # Core Python package (SAST, Taint, DAST, CLI)
-│   ├── cli.py                 # CLI commands (scan, verify, lint)
+├── actionlens/                # Core Python package (SAST, Taint, CLI)
+│   ├── cli.py                 # CLI entry point (scan and format)
+│   ├── parser.py              # Invokes parser binary and loads AST JSON
 │   ├── models.py              # Pydantic schemas (AST, Rules, Findings)
-│   ├── sast/                  # Linter & NetworkX taint graph engine
-│   ├── dast/                  # GitHub API orchestrator & log verifier
-│   └── reporting/             # Console, SARIF, and JSON formatters
+│   ├── sast/                  # SAST orchestrator, lint rules & taint engine
+│   └── reporting/             # Console and JSON formatters
 ├── testdata/                  # Test workflows (benign & vulnerable samples)
 │   ├── vulnerable/            # Vulnerable workflow samples for regression tests
 │   └── secure/                # Remediated & safe workflow samples
-└── tests/                     # Pytest test suite
+├── tests/                     # Pytest test suite
+├── pyproject.toml             # Python package configuration & CLI entrypoint
+└── requirements.txt           # Python dependencies
 ```
 
----
 
-## ⚡ Planned Initial Vulnerability Targets
 
-| Category                 | Vulnerability / Check              | Detection Mechanism                                                                | Status         |
-| :----------------------- | :--------------------------------- | :--------------------------------------------------------------------------------- | :------------- |
-| **SAST (Code Analysis)** | **Script / Expression Injection**  | Taint flow graph: Untrusted trigger context to inline `run:` script                | Planned (MVP)  |
-| **SAST (Code Analysis)** | **Excessive Token Permissions**    | Workflow & job-level `permissions` block evaluation                                | Planned (MVP)  |
-| **SAST (Linting)**       | **Unpinned Third-Party Actions**   | AST inspection of `uses:` step clauses (require full commit SHA)                   | Planned (MVP)  |
-| **SAST (Linting)**       | **Dangerous Pull Request Target**  | Check if `pull_request_target` combines with explicit checkout of untrusted PR ref | Researched     |
-| **DAST (Verification)**  | **Injection Exploit Verification** | API harness triggering candidate workflow with non-destructive canary payload      | Research / PoC |
-
-Detailed breakdown and research notes can be found in [`docs/vulnerability-matrix.md`](file:///Users/chinz/projects/KTH/actionlens/docs/vulnerability-matrix.md).
+**Note:** Detailed breakdown of vulnerabilities can be found in [`docs/vulnerability-matrix.md`](file:///Users/chinz/projects/KTH/actionlens/docs/vulnerability-matrix.md).
 
 ---
 

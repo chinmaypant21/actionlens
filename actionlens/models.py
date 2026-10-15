@@ -1,5 +1,7 @@
 """Pydantic data models for ActionLens normalized AST, rules, and findings."""
 
+# Used Claude Opus 4.6 for setting up this
+
 from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Optional
@@ -99,7 +101,7 @@ class WorkflowAST(BaseModel):
 
 
 class Finding(BaseModel):
-    """Standardized vulnerability finding format matching Step 4 of development.md."""
+    """Standardized vulnerability finding format."""
     rule_id: str
     severity: Severity
     file_path: str
