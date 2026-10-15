@@ -11,6 +11,8 @@ def format_findings_json(findings: Sequence[Finding], indent: int = 2) -> str:
     return json.dumps(data, indent=indent)
 
 
+# Took help from Gemini 3.8 Flash to generatae CLI formatter 
+
 def format_cli_table(findings: Sequence[Finding]) -> str:
     """Format findings as a human-readable CLI report."""
     try:

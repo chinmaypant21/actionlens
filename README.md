@@ -67,12 +67,17 @@ For detailed specifications, see:
 - **Go 1.21+** (for building the AST parser)
 - **Python 3.10+** (for the security analysis engine)
 
-### 2. Build the Go Parser Frontend
+### 2. Build the Go Parser
 The Python engine invokes a standalone Go binary to parse workflow YAML and expression ASTs:
 ```bash
 cd parser
 go build -o actionlens-parser .
 cd ..
+```
+
+**Note:** go parser can also be used independently for generating AST JSON: 
+```bash
+./parser/actionlens-parser <filename>
 ```
 
 ### 3. Set Up Python Environment
