@@ -1,5 +1,5 @@
 # Status: VULNERABLE
-# Rule: AL-CODE-003 (Untrusted Checkout via pull_request_target)
+# Rule: AL-CODE-002 (Untrusted Checkout on Privileged Trigger)
 # Insecure: Runs in privileged 'pull_request_target' context but explicitly checks out
 #           the untrusted PR head commit ('${{ github.event.pull_request.head.sha }}').
 #           Any subsequent build steps run untrusted code with repository secrets/tokens.

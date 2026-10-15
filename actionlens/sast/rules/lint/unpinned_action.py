@@ -1,8 +1,4 @@
-"""AL-LINT-001: Unpinned Third-Party Action.
-
-Detects actions that reference mutable branches or tags like @v4 or @main
-instead of an immutable 40-character commit SHA.
-"""
+"""AL-LINT-001: Unpinned Third-Party Action."""
 
 from actionlens.models import Finding, Rule, RuleCategory, Severity, WorkflowAST
 
@@ -26,15 +22,22 @@ class UnpinnedActionRule(Rule):
                 if not step.uses:
                     continue
 
-                raw_ref = step.uses.raw
+                # contains value like actions/checkout@v4
+                action_reference = step.uses.raw
 
                 # Ignore local actions
-                if raw_ref.startswith("./"):
+                if action_reference.startswith("./"):
                     continue
 
                 # Flag if not pinned to a 40-character SHA
                 if not step.uses.is_sha:
-                    line_num = step.pos.line if step.pos.line > 0 else (job.pos.line if job.pos.line > 0 else 1)
+                    if step.pos.line > 0:
+                        line_num = step.pos.line
+                    elif job.pos.line > 0:
+                        line_num = job.pos.line
+                    else:
+                        line_num = 1
+
                     findings.append(
                         Finding(
                             rule_id=self.rule_id,
@@ -42,10 +45,10 @@ class UnpinnedActionRule(Rule):
                             file_path=ast.file_path,
                             line=line_num,
                             message=(
-                                f"Action '{raw_ref}' is unpinned "
+                                f"Action '{action_reference}' is unpinned "
                                 f"(uses mutable tag or branch '@{step.uses.ref}' instead of commit SHA)."
                                 if step.uses.ref
-                                else f"Action '{raw_ref}' is unpinned (missing commit SHA)."
+                                else f"Action '{action_reference}' is unpinned (missing commit SHA)."
                             ),
                             remediation=self.remediation,
                         )

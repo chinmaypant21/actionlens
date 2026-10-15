@@ -4,9 +4,9 @@ This guide details the architectural philosophy, technology stack, project struc
 
 ---
 
-## 1. Architectural Approach: Frontend Parser $\to$ Python Engine
+## 1. Architectural Approach: Go Workflow Parser $\to$ Python Engine
 
-ActionLens uses a **hybrid "Parser Frontend $\to$ Analysis Engine" architecture**:
+ActionLens uses a **hybrid "Parser $\to$ Analysis Engine" architecture**:
 
 ```text
 ┌────────────────────────────────┐
@@ -15,8 +15,8 @@ ActionLens uses a **hybrid "Parser Frontend $\to$ Analysis Engine" architecture*
                 │
                 ▼
 ┌────────────────────────────────┐
-│  Go Parser Frontend            │  <-- Single-purpose binary
-│  (rhysd/actionlint)            │  <-- Parses YAML & ${{ ... }} expression trees
+│      Go Parser                 │  <-- Single-purpose binary
+│      (rhysd/actionlint)        │  <-- Parses YAML & ${{ ... }} expression trees
 └───────────────┬────────────────┘
                 │  Normalized AST JSON
                 ▼
@@ -53,7 +53,7 @@ This design is a practical compromise based on existing open-source tooling and 
 
 ## 3. Technology Stack & Core Libraries
 
-### A. Parser Frontend (Go)
+### A. Parser (Go)
 | Library / Tool                                                                  | Purpose                                                                                  |
 | :------------------------------------------------------------------------------ | :--------------------------------------------------------------------------------------- |
 | **Go 1.21+**                                                                    | Compiles the standalone parser binary (`actionlens-parser`).                             |
@@ -197,7 +197,7 @@ actionlens/
 │   ├── architecture.md        # Technical architecture (SAST & DAST layers)
 │   ├── vulnerability-matrix.md# Catalog of targeted vulnerabilities & statuses
 │   └── development.md         # This development guide
-├── parser/                    # Go Parser Frontend
+├── parser/                    # Go Workflow Parser
 │   ├── main.go                # CLI entry point; reads YAML, emits JSON
 │   ├── models.go              # Normalized AST structs (WorkflowAST, StepAST, etc.)
 │   ├── parser.go              # actionlint AST converter with deterministic ordering
@@ -232,7 +232,7 @@ actionlens/
 
 ## 6. Local Setup & Testing
 
-### 1. Build and Test the Go Parser Frontend
+### 1. Build and Test the Go Parser
 ```bash
 cd parser
 go test -v ./...

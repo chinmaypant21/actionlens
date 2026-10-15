@@ -1,0 +1,20 @@
+# Status: SECURE
+# Rule: AL-LINT-004 (Unsafe Self-Hosted Runner Usage)
+# Secure: Uses GitHub-hosted runner (ubuntu-latest) for PR-triggered workflow.
+
+name: Secure Hosted Runner Workflow
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+      - name: Run Build
+        run: echo "Building..."

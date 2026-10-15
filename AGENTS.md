@@ -17,7 +17,7 @@ This document provides essential instructions, context, and development guidelin
 When implementing features or rules, follow these architectural boundaries:
 
 1. **Strict Separation of Concerns:**
-   - **Parser Frontend (`parser/` - Go):** Standalone Go binary using `actionlint` that reads workflow YAML and expressions, emitting a normalized AST JSON.
+   - **Workflow Parser (`parser/` - Go):** Standalone Go binary using `actionlint` that reads workflow YAML and expressions, emitting a normalized AST JSON.
    - **Security Linting (`actionlens/sast/rules/lint/` - Python):** Fast, AST-only pattern and structural checks (e.g., checking if a `uses:` line has a commit SHA or a mutable tag, or checking whether top-level permissions are specified). Must NOT require complex data-flow tracking.
    - **Code Analysis / Taint Engine (`actionlens/sast/taint.py`, `actionlens/sast/rules/codeanalysis/` - Python):** Multi-step semantic analysis using `networkx`. Tracks how untrusted input (sources like `github.event.issue.body`) flows through variables/environments (propagators) to execution contexts (sinks like bash `run:` scripts).
    - **DAST / Dynamic Layer (`actionlens/dast/` - Python):** Operates *after* SAST. Given an identified candidate vulnerability, uses the GitHub API (`PyGithub` / `httpx`) to trigger an orchestrated run with a safe canary payload in a test harness and inspects run logs to verify true exploitability.
@@ -35,7 +35,7 @@ When implementing features or rules, follow these architectural boundaries:
 
 ## 3. Technology Stack & Dependencies
 
-- **Frontend Parser (Go):** [`github.com/rhysd/actionlint`](https://pkg.go.dev/github.com/rhysd/actionlint) for typed GitHub Actions AST parsing.
+- ** Workflow Parser (Go):** [`github.com/rhysd/actionlint`](https://pkg.go.dev/github.com/rhysd/actionlint) for typed GitHub Actions AST parsing.
 - **Core Engine (Python 3.10+):**
   - **Graph & Dataflow:** [`networkx`](https://networkx.org/) for directed taint flow graph representation and reachability path analysis.
   - **Data Modeling:** [`pydantic`](https://docs.pydantic.dev/) for AST schemas and finding models.
@@ -80,6 +80,6 @@ When creating a new detection rule:
 ## 6. Guidelines for AI Agents
 
 - **Model & AST Schemas:** When writing Python rules, inspect `actionlens.models.WorkflowAST` schemas. When working in `parser/`, verify Go types against `actionlint` AST types (`*actionlint.Workflow`, `*actionlint.Job`, `*actionlint.Step`, `*actionlint.ExecRun`).
-- **Maintain Test Suite Quality:** Ensure `pytest tests/` passes after adding or editing rule or engine code. If modifying the Go parser frontend, ensure `go test ./...` passes inside `parser/`.
+- **Maintain Test Suite Quality:** Ensure `pytest tests/` passes after adding or editing rule or engine code. If modifying the Go parser, ensure `go test ./...` passes inside `parser/`.
 - **Keep Documentation Updated:** Whenever adding new detectors or modifying graph algorithms, update [`docs/architecture.md`](file:///Users/chinz/projects/KTH/actionlens/docs/architecture.md) and [`docs/vulnerability-matrix.md`](file:///Users/chinz/projects/KTH/actionlens/docs/vulnerability-matrix.md).
 - **Safe Canary Payloads Only:** In any DAST or verification code, never generate malicious, exfiltrating, or destructive payloads. Use innocuous verification markers (e.g. unique UUID or hash echoed into runner logs).
