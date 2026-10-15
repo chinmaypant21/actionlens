@@ -1,5 +1,5 @@
 # Status: SECURE
-# Rule: AL-LINT-002 (Missing Default Permissions), AL-CODE-002 (Excessive Token Permissions)
+# Rule: AL-LINT-003 (Missing or Over-scoped Permissions Block)
 # Secure: Top-level 'permissions: {}' denies all permissions by default;
 #         job requests only minimal scope required ('issues: read').
 
