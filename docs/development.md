@@ -248,8 +248,16 @@ pip install -r requirements.txt
 pip install -e .
 ```
 
-### 3. Run Tests
+
+### 3. Run the Security Scanner
+Analyze any workflow YAML file using the CLI tool:
 ```bash
-pytest -v tests/
+# Terminal table output
+actionlens testdata/vulnerable/excessive_permissions.yml
+
+# Or run via python3 module
+python3 -m actionlens testdata/vulnerable/excessive_permissions.yml
+
+# JSON output
+actionlens testdata/vulnerable/excessive_permissions.yml --format json
 ```
-Tests load YAML samples from [`testdata/`](file:///Users/chinz/projects/KTH/actionlens/testdata/) to verify positive detection on vulnerable files and zero false positives on secure files.

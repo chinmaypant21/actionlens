@@ -13,8 +13,8 @@ try:
     from .taint_graph import TaintGraph, NodeType
     from .visualization import visualize_graph
 except ImportError:
-    from taint_graph import TaintGraph, NodeType
-    from visualization import visualize_graph
+    from actionlens.sast.rules.taint_analysis.taint_graph import TaintGraph, NodeType
+    from actionlens.sast.rules.taint_analysis.visualization import visualize_graph
 
 # User manipulated contexts that may be used to inject malicious scripts or commands into a workflow
 UNTRUSTED_CONTEXTS: set[str] = {

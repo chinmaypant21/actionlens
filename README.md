@@ -4,7 +4,7 @@
 
 ---
 
-## 🎯 Objectives & Scope
+## Objectives & Scope
 
 Modern CI/CD pipelines hold privileged access to source code, cloud credentials, production environments, and release artifacts. ActionLens targets security risks in workflow definitions across two coordinated layers:
 
@@ -59,6 +59,50 @@ For detailed specifications, see:
 - [Vulnerability Matrix & Research Roadmap](file:///Users/chinz/projects/KTH/actionlens/docs/vulnerability-matrix.md)
 - [Agent Guide (`AGENTS.md`)](file:///Users/chinz/projects/KTH/actionlens/AGENTS.md)
 - [Development & Contribution Guide](file:///Users/chinz/projects/KTH/actionlens/docs/development.md)
+
+---
+
+## Usage
+
+### 1. Prerequisites
+- **Go 1.21+** (for building the AST parser)
+- **Python 3.10+** (for the security analysis engine)
+
+### 2. Build the Go Parser Frontend
+The Python engine invokes a standalone Go binary to parse workflow YAML and expression ASTs:
+```bash
+cd parser
+go build -o actionlens-parser .
+cd ..
+```
+
+### 3. Set Up Python Environment
+Create and activate a virtual environment, then install dependencies and the package:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+pip install -e .
+```
+
+### 4. Run the Security Scanner
+With the virtual environment activated (`source .venv/bin/activate`):
+
+```bash
+# Scan a workflow file with human-readable table output
+actionlens testdata/vulnerable/excessive_permissions.yml
+
+# Or run via Python module syntax
+python3 -m actionlens testdata/vulnerable/excessive_permissions.yml
+
+# Output machine-readable JSON
+actionlens testdata/vulnerable/excessive_permissions.yml --format json
+```
+
+### 5. Run the Test Suite
+```bash
+pytest -v tests/
+```
 
 ---
 
