@@ -44,7 +44,7 @@ The static analysis pipeline consists of two complementary layers operating on t
 ### 2.1 Security Linting Layer (`actionlens/sast/rules/lint/`)
 The linter performs AST pattern matching on workflow structure and metadata without constructing dataflow graphs.
 
-- **Input:** `WorkflowAST` (parsed from the Go frontend's JSON output).
+- **Input:** `WorkflowAST` (parsed from the Go parser's JSON output).
 - **Scope:**
   - Structural configuration (e.g., presence and scoping of `permissions:` blocks).
   - Unpinned third-party actions (`uses:` format analysis).

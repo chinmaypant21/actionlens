@@ -4,7 +4,7 @@ This guide details the architectural philosophy, technology stack, project struc
 
 ---
 
-## 1. Architectural Approach: Frontend Parser $\to$ Python Engine
+## 1. Architectural Approach: Go Workflow Parser $\to$ Python Engine
 
 ActionLens uses a **hybrid "Parser $\to$ Analysis Engine" architecture**:
 

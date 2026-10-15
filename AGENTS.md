@@ -35,7 +35,7 @@ When implementing features or rules, follow these architectural boundaries:
 
 ## 3. Technology Stack & Dependencies
 
-- **Frontend Parser (Go):** [`github.com/rhysd/actionlint`](https://pkg.go.dev/github.com/rhysd/actionlint) for typed GitHub Actions AST parsing.
+- ** Workflow Parser (Go):** [`github.com/rhysd/actionlint`](https://pkg.go.dev/github.com/rhysd/actionlint) for typed GitHub Actions AST parsing.
 - **Core Engine (Python 3.10+):**
   - **Graph & Dataflow:** [`networkx`](https://networkx.org/) for directed taint flow graph representation and reachability path analysis.
   - **Data Modeling:** [`pydantic`](https://docs.pydantic.dev/) for AST schemas and finding models.
