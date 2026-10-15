@@ -32,7 +32,7 @@ flowchart TD
     end
 
     Findings -. "Only exploitable candidates<br/><i>(e.g., Script Injection)</i>" .-> Trigger
-    Logs --> Verified["✅ Verified Exploit Report<br/><i>Confirmed vulnerability with proof-of-concept</i>"]
+    Logs --> Verified["✅ Verified Exploit Report"]
 ```
 
 ---

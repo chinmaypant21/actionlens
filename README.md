@@ -46,16 +46,16 @@ flowchart TD
     %% Stage 2: DAST
     subgraph DAST["2. Dynamic Verification (DAST)"]
         direction TB
-        Trigger["🚀 Test Orchestrator<br/>Triggers test workflow via GitHub API<br/>with a safe canary payload"]
+        Trigger["Test Orchestrator<br/>Triggers test workflow via GitHub API<br/>with a safe payload"]
         Trigger --> Logs["📜 Log & Trace Verifier<br/>Inspects workflow runner execution logs<br/>to confirm if canary executed"]
     end
 	Findings -. "Future Scope" .-> Trigger
-    Logs --> Verified["✅ Verified Exploit Report<br/><i>Confirmed vulnerability with proof-of-concept</i>"]
+    Logs --> Verified["📝 Verified Exploit Report"]
 ```
 
 For detailed specifications, see:
 - [Architecture Guide](file:///Users/chinz/projects/KTH/actionlens/docs/architecture.md)
-- [Vulnerability Matrix & Research Roadmap](file:///Users/chinz/projects/KTH/actionlens/docs/vulnerability-matrix.md)
+- [Vulnerability Matrix](file:///Users/chinz/projects/KTH/actionlens/docs/vulnerability-matrix.md)
 - [Agent Guide (`AGENTS.md`)](file:///Users/chinz/projects/KTH/actionlens/AGENTS.md)
 - [Development & Contribution Guide](file:///Users/chinz/projects/KTH/actionlens/docs/development.md)
 
@@ -75,7 +75,7 @@ go build -o actionlens-parser .
 cd ..
 ```
 
-**Note:** go parser can also be used independently for generating AST JSON: 
+**Note:** go parser can also be used independently for generating AST: 
 ```bash
 ./parser/actionlens-parser <filename>
 ```
