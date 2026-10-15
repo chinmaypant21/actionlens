@@ -8,6 +8,15 @@ import (
 	"github.com/rhysd/actionlint"
 )
 
+/*
+ * --- Future Scope ---
+// Extend AST coverage to include strategy/matrix, containers, services,
+// deployment environments, concurrency, and other job/step settings.
+//
+// Expand expression extraction beyond step-level fields and track source
+// positions more consistently for precise SAST findings.
+*/
+
 // ParseWorkflow converts a raw workflow YAML byte slice into a normalized WorkflowAST
 func ParseWorkflow(filePath string, content []byte) (*WorkflowAST, error) {
 	w, errs := actionlint.Parse(content)
@@ -64,6 +73,8 @@ func ParseWorkflow(filePath string, content []byte) (*WorkflowAST, error) {
 	return ast, nil
 }
 
+// parseTriggers extracts workflow trigger events and their filters,
+// including activity types, branches, tags, and paths.
 func parseTriggers(events []actionlint.Event) []Trigger {
 	if len(events) == 0 {
 		return nil
@@ -110,6 +121,8 @@ func parseTriggers(events []actionlint.Event) []Trigger {
 	return triggers
 }
 
+// parsePermissions converts actionlint permission settings into PermissionsConfig,
+// including source position, global permissions, and individual scopes.
 func parsePermissions(p *actionlint.Permissions) *PermissionsConfig {
 	if p == nil {
 		return nil
@@ -136,6 +149,7 @@ func parsePermissions(p *actionlint.Permissions) *PermissionsConfig {
 	return cfg
 }
 
+// parseEnv converts environment variables into a map of variable names and values.
 func parseEnv(e *actionlint.Env) map[string]string {
 	if e == nil || len(e.Vars) == 0 {
 		return nil
@@ -150,6 +164,8 @@ func parseEnv(e *actionlint.Env) map[string]string {
 	return envMap
 }
 
+// parseJob extracts a job's metadata, runner configuration, permissions,
+// dependencies, conditions, environment variables, outputs, and steps.
 func parseJob(j *actionlint.Job) JobAST {
 	job := JobAST{}
 
@@ -221,6 +237,8 @@ func parseJob(j *actionlint.Job) JobAST {
 	return job
 }
 
+// parseStep extracts a step's metadata, execution details, action reference,
+// inputs, environment variables, and expressions.
 func parseStep(s *actionlint.Step) StepAST {
 	step := StepAST{}
 

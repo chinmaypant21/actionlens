@@ -68,6 +68,6 @@ class SASTOrchestrator:
         return format_findings_json(findings, indent=indent)
 
     def scan_and_report_cli(self, target: Union[WorkflowAST, str, Path]) -> str:
-        """Scan a workflow and return a human-readable CLI report."""
+        """Scan a workflow and provide a human-readable CLI report."""
         findings = self.scan_workflow(target)
         return format_cli_table(findings)

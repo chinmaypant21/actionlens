@@ -12,7 +12,9 @@ var (
 	shaRegex  = regexp.MustCompile(`^[0-9a-fA-F]{40}$`)
 )
 
-// ExtractExpressions finds all ${{ ... }} expressions in a string and extracts their context and location
+// ExtractExpressions finds all expressions like "${{ ... }}" in step: fields
+// and records their context and source field like "run", "if", or "env.TOKEN"
+// Used in parser.go in parseStep
 func ExtractExpressions(input string, location string) []ExpressionInfo {
 	if input == "" {
 		return nil
@@ -35,6 +37,39 @@ func ExtractExpressions(input string, location string) []ExpressionInfo {
 
 	return results
 }
+
+// ParseActionReference parses a "uses:" string into owner, repo, ref and SHA status
+// Used in parser.go for in parseStep
+func ParseActionReference(raw string) *ActionRef {
+	if raw == "" {
+		return nil
+	}
+
+	ref := &ActionRef{
+		Raw: raw,
+	}
+
+	atIdx := strings.LastIndex(raw, "@")
+	var repoPart, verPart string
+	if atIdx != -1 {
+		repoPart = raw[:atIdx]
+		verPart = raw[atIdx+1:]
+		ref.Ref = verPart
+		ref.IsSHA = shaRegex.MatchString(verPart)
+	} else {
+		repoPart = raw
+	}
+
+	slashParts := strings.Split(repoPart, "/")
+	if len(slashParts) >= 2 {
+		ref.Owner = slashParts[0]
+		ref.Repo = slashParts[1]
+	}
+
+	return ref
+}
+
+// ---- Helpers --- //
 
 // parseSingleExpression parses the inner expression text using actionlint's ExprParser
 func parseSingleExpression(inner, location string) ExpressionInfo {
@@ -122,34 +157,4 @@ func collectDerefChain(node *actionlint.ObjectDerefNode) string {
 	}
 
 	return strings.Join(props, ".")
-}
-
-// ParseActionReference parses a "uses:" string into owner, repo, ref and SHA status
-func ParseActionReference(raw string) *ActionRef {
-	if raw == "" {
-		return nil
-	}
-
-	ref := &ActionRef{
-		Raw: raw,
-	}
-
-	atIdx := strings.LastIndex(raw, "@")
-	var repoPart, verPart string
-	if atIdx != -1 {
-		repoPart = raw[:atIdx]
-		verPart = raw[atIdx+1:]
-		ref.Ref = verPart
-		ref.IsSHA = shaRegex.MatchString(verPart)
-	} else {
-		repoPart = raw
-	}
-
-	slashParts := strings.Split(repoPart, "/")
-	if len(slashParts) >= 2 {
-		ref.Owner = slashParts[0]
-		ref.Repo = slashParts[1]
-	}
-
-	return ref
 }
