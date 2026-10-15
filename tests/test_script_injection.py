@@ -26,6 +26,7 @@ def test_expression_injection_vulnerable():
     assert f1.rule_id == "AL-CODE-001"
     assert f1.severity == Severity.HIGH
     assert f1.line == 15 # NOTE 17 would be nicer, but the parser is not giving that
+    assert "github.event.issue.title" in f1.message
 
 
 def test_inject_via_githuboutput():
@@ -44,6 +45,7 @@ def test_inject_via_githuboutput():
     assert f1.rule_id == "AL-CODE-001"
     assert f1.severity == Severity.HIGH
     assert f1.line == 11
+    assert "steps.x.outputs.out" in f1.message
 
 
 def test_script_injection_with():
@@ -62,6 +64,7 @@ def test_script_injection_with():
     assert f1.rule_id == "AL-CODE-001"
     assert f1.severity == Severity.HIGH
     assert f1.line == 18 # NOTE 22 would be nicer, but the parser is not giving that
+    assert "github.event.comment.body" in f1.message
 
 
 # ---- Test SECURE workflows ----

@@ -109,13 +109,14 @@ class ScriptInjectionRule(Rule):
         # Perform taint analysis on the built graph
         for path in find_direct_injection_paths(taint_graph):
             sink_node = path[0]
+            unstrusted_input_node = path[1]
             line_number = sink_lines.get(sink_node.value, -1)
             findings.append(Finding(
                 rule_id=self.rule_id,
                 severity=self.severity,
                 file_path=ast.file_path,
                 line=line_number,
-                message="Untrusted user input is being passed to a script execution context.",
+                message=f"Untrusted user input '{unstrusted_input_node.value}' is being passed to a script execution context.",
                 remediation=self.remediation
             ))
         if self.visualize_path:
