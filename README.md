@@ -16,7 +16,7 @@ Modern CI/CD pipelines hold privileged access to source code, cloud credentials,
   - AST-based pattern matching for supply-chain risks (e.g., unpinned third-party actions using mutable tags like `@v1` or `@main` instead of immutable commit SHAs).
   - Dangerous configuration patterns (e.g., insecure checkouts, missing environment isolation).
 
-### 2. Dynamic Verification (DAST / Exploit Harness - Research Layer)
+### 2. DAST Exploit Harness (FUTURE SCOPE)
 - **API Orchestrator & Log Verifier:**
   - In controlled environments (test repositories / ephemeral runners), triggers and orchestrates targeted execution of flagged workflows.
   - Verifies whether an identified candidate vulnerability is genuinely exploitable by inspecting execution traces and runner logs.
@@ -54,11 +54,9 @@ flowchart TD
 ```
 
 For detailed specifications, see:
-- [Architecture Guide](file:///Users/chinz/projects/KTH/actionlens/docs/architecture.md)
-- [Vulnerability Matrix](file:///Users/chinz/projects/KTH/actionlens/docs/vulnerability-matrix.md)
-- [Agent Guide (`AGENTS.md`)](file:///Users/chinz/projects/KTH/actionlens/AGENTS.md)
-- [Development & Contribution Guide](file:///Users/chinz/projects/KTH/actionlens/docs/development.md)
-
+- [Architecture Guide](docs/architecture.md)
+- [Vulnerability Matrix](docs/vulnerability-matrix.md)
+- [Development & Contribution Guide](docs/development.md)
 ---
 
 ## Usage
@@ -142,8 +140,7 @@ actionlens/
 ```
 
 
-
-**Note:** Detailed breakdown of vulnerabilities can be found in [`docs/vulnerability-matrix.md`](file:///Users/chinz/projects/KTH/actionlens/docs/vulnerability-matrix.md).
+**Note:** Detailed breakdown of vulnerabilities can be found in [`docs/vulnerability-matrix.md`](docs/vulnerability-matrix.md).
 
 ---
 

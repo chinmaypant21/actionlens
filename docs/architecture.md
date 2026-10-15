@@ -19,20 +19,19 @@ flowchart TD
     end
 
     %% Findings (Bridge between SAST and DAST)
-    Lint --> Findings["📋 Potential Vulnerabilities Found<br/><i>Candidate issues identified in code</i>"]
+    Lint --> Findings["📋 Potential Vulnerabilities Found"]
     Dataflow --> Findings
 
     Findings --> StaticReport["📊 Static Security Report"]
 
     %% Stage 2: DAST
-    subgraph DAST["2. Dynamic Verification (DAST) - Future Scope"]
+    subgraph DAST["2. Dynamic Verification (DAST)"]
         direction TB
-        Trigger["🚀 Test Orchestrator<br/>Triggers test workflow via GitHub API<br/>with a safe canary payload"]
+        Trigger["Test Orchestrator<br/>Triggers test workflow via GitHub API<br/>with a safe payload"]
         Trigger --> Logs["📜 Log & Trace Verifier<br/>Inspects workflow runner execution logs<br/>to confirm if canary executed"]
     end
-
-    Findings -. "Only exploitable candidates<br/><i>(e.g., Script Injection)</i>" .-> Trigger
-    Logs --> Verified["✅ Verified Exploit Report"]
+	Findings -. "Future Scope" .-> Trigger
+    Logs --> Verified["📝 Verified Exploit Report"]
 ```
 
 ---
