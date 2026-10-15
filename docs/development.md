@@ -247,17 +247,3 @@ source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
 ```
-
-
-### 3. Run the Security Scanner
-Analyze any workflow YAML file using the CLI tool:
-```bash
-# Terminal table output
-actionlens testdata/vulnerable/excessive_permissions.yml
-
-# Or run via python3 module
-python3 -m actionlens testdata/vulnerable/excessive_permissions.yml
-
-# JSON output
-actionlens testdata/vulnerable/excessive_permissions.yml --format json
-```

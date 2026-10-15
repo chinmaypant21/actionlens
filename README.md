@@ -86,7 +86,7 @@ pip install -e .
 ```
 
 ### 4. Run the Security Scanner
-With the virtual environment activated (`source .venv/bin/activate`):
+With the virtual environment activated:
 
 ```bash
 # Scan a workflow file with human-readable table output
@@ -95,7 +95,7 @@ actionlens testdata/vulnerable/excessive_permissions.yml
 # Or run via Python module syntax
 python3 -m actionlens testdata/vulnerable/excessive_permissions.yml
 
-# Output machine-readable JSON
+# JSON Format
 actionlens testdata/vulnerable/excessive_permissions.yml --format json
 ```
 
