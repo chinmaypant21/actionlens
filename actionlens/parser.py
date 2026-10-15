@@ -1,4 +1,4 @@
-"""Bridge to invoke the Go parser frontend and deserialize normalized AST JSON."""
+"""Bridge to invoke the Go parser and deserialize normalized AST JSON."""
 
 import json
 import os

@@ -8,7 +8,7 @@ import (
 	"os"
 )
 
-// main is the CLI entrypoint for the parser frontend.
+// main is the CLI entrypoint for the workflow parser.
 // It reads a GitHub Actions workflow YAML file and outputs a normalized AST JSON.
 func main() {
 	filePath := flag.String("file", "", "Path to the GitHub Actions workflow YAML file (optional if passed as positional arg)")
