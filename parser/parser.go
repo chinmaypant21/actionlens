@@ -17,6 +17,7 @@ import (
 // positions more consistently for precise SAST findings.
 */
 
+// --- Parent function ----
 // ParseWorkflow converts a raw workflow YAML byte slice into a normalized WorkflowAST
 func ParseWorkflow(filePath string, content []byte) (*WorkflowAST, error) {
 	w, errs := actionlint.Parse(content)
@@ -73,7 +74,7 @@ func ParseWorkflow(filePath string, content []byte) (*WorkflowAST, error) {
 	return ast, nil
 }
 
-// parseTriggers extracts workflow trigger events and their filters,
+// parseTriggers extracts workflow "on:" trigger events and their filters,
 // including activity types, branches, tags, and paths.
 func parseTriggers(events []actionlint.Event) []Trigger {
 	if len(events) == 0 {
