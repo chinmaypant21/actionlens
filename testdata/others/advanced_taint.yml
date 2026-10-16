@@ -1,0 +1,27 @@
+name: Advanced Multi-Step Taint Flow
+on:
+  push:
+    branches: [ main ]
+
+jobs:
+  audit-commit:
+    runs-on: ubuntu-latest
+    steps:
+      # Step 1: The Source to Propagator
+      # A developer extracts the author email to tag cloud resources.
+      # Because ${{ }} is used to write to GITHUB_OUTPUT, this acts as a Propagator.
+      - name: Extract Author Data
+        id: parse_author
+        run: |
+          echo "email=${{ github.event.head_commit.author.email }}" >> $GITHUB_OUTPUT
+
+      # Step 2: The Advanced Sink
+      # The developer uses a cloud provider action and interpolates the output 
+      # from Step 1 directly into the execution script.
+      - name: Tag Azure Resources
+        uses: azure/CLI@v1
+        with:
+          azcliversion: 2.30.0
+          # THE SINK: The engine must trace from github_output back to the original email context.
+          inlineScript: |
+            az resource tag --tags author="${{ steps.parse_author.outputs.email }}" --resource-group MyGroup
