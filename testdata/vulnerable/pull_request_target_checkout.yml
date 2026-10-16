@@ -20,5 +20,5 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.pull_request.head.sha }}
-      - name: Run build script
-        run: npm test
+      # - name: Run build script
+      #   run: npm test

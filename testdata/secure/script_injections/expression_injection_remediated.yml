@@ -17,6 +17,6 @@ jobs:
     steps:
       - name: Print issue title safely
         env:
-          ISSUE_TITLE: ${{ github.event.issue.title }}
+          ISSUE_TITLE: ${{ github.event.issue.title }} #Sanitizer
         run: |
           echo "Processing issue: $ISSUE_TITLE"

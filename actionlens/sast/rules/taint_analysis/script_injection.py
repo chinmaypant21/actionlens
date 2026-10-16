@@ -17,15 +17,36 @@ except ImportError:
     from actionlens.sast.rules.taint_analysis.visualization import visualize_graph
 
 # User manipulated contexts that may be used to inject malicious scripts or commands into a workflow
+# Ref: https://securitylab.github.com/resources/github-actions-untrusted-input/
 UNTRUSTED_CONTEXTS: set[str] = {
-    "github.event.issue.body",
+    # Issues & PRs
     "github.event.issue.title",
+    "github.event.issue.body",
     "github.event.pull_request.title",
     "github.event.pull_request.body",
+    "github.event.pull_request.head.ref",
+    "github.event.pull_request.head.label",
+    "github.event.pull_request.head.repo.default_branch",
     "github.head_ref",
+    "github.base_ref",
+    
+    # Comments, Reviews, and Discussions
     "github.event.comment.body",
     "github.event.review.body",
+    "github.event.review_comment.body",
+    "github.event.discussion.title",
+    "github.event.discussion.body",
+    
+    # Commits (The Head Commit)
+    "github.event.head_commit.message",
+    "github.event.head_commit.author.email",
+    "github.event.head_commit.author.name",
+    
+    # Releases
+    "github.event.release.name",
+    "github.event.release.body",
 }
+
 def is_source(expr: str) -> bool:
     """Return True if the expression contains an untrusted context."""
     _alt = "|".join(re.escape(c) for c in sorted(UNTRUSTED_CONTEXTS, key=len, reverse=True))
@@ -36,9 +57,22 @@ def is_source(expr: str) -> bool:
 # In the parsed json the expressions.location always notes the sinks for this step. Based on this sink type the eg "run" statement needs to be identified
 # Possible tainted execution environments
 SINKS = { 
+# Core OS & Script Execution
     "run",
-    "with.script",
+    "with.script",         # actions/github-script
+    "with.inlineScript",   # azure/CLI
+    
+    # Docker / Container Execution
+    "with.args",
+    "with.entrypoint",
+    
+    # Remote Commands
+    "with.command",
+    "with.cmd",
+    
+    # Environmental / State Poisoning
     "with.ref",
+    "with.repository",
 }
 
 def find_source(expr: str) -> list[str] | None:
