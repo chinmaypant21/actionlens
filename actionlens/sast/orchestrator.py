@@ -11,6 +11,7 @@ from actionlens.sast.rules.lint.self_hosted_runner import SelfHostedRunnerRule
 from actionlens.sast.rules.lint.unpinned_action import UnpinnedActionRule
 from actionlens.sast.rules.lint.untrusted_namespace import UntrustedNamespaceRule
 from actionlens.sast.rules.taint_analysis.script_injection import ScriptInjectionRule
+from actionlens.sast.rules.taint_analysis.untrusted_checkout import UntrustedCheckoutRule
 
 
 class SASTOrchestrator:
@@ -29,6 +30,7 @@ class SASTOrchestrator:
             PermissionsBlockRule(),
             SelfHostedRunnerRule(),
             ScriptInjectionRule(),
+            UntrustedCheckoutRule(),
             # Add future rules here
         ]
 
