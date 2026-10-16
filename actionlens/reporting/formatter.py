@@ -4,9 +4,14 @@ import json
 from typing import Sequence
 from actionlens.models import Finding
 
+SECURE_MESSAGE = "No findings detected. All checks passed!"
+
 
 def format_findings_json(findings: Sequence[Finding], indent: int = 2) -> str:
     """Format findings as JSON matching Step 4 of docs/development.md."""
+    if not findings:
+        return json.dumps({"message": SECURE_MESSAGE}, indent=indent)
+
     data = [finding.model_dump() for finding in findings]
     return json.dumps(data, indent=indent)
 
@@ -15,6 +20,9 @@ def format_findings_json(findings: Sequence[Finding], indent: int = 2) -> str:
 
 def format_cli_table(findings: Sequence[Finding]) -> str:
     """Format findings as a human-readable CLI report."""
+    if not findings:
+        return SECURE_MESSAGE
+
     try:
         from rich.console import Console
         from rich.table import Table
@@ -47,6 +55,8 @@ def format_cli_table(findings: Sequence[Finding]) -> str:
 
         with console.capture() as capture:
             console.print(table)
+            console.print("\n[bold cyan]For more accurate details, refer to the JSON report.[/bold cyan]")
+        
         return capture.get()
 
     except ImportError:
@@ -57,7 +67,7 @@ def format_cli_table(findings: Sequence[Finding]) -> str:
             "=" * 80,
         ]
         if not findings:
-            lines.append("No findings detected. All checks passed!")
+            lines.append(SECURE_MESSAGE)
         for f in findings:
             lines.extend([
                 f"[{f.severity.value}] {f.rule_id} at {f.file_path}:{f.line}",
