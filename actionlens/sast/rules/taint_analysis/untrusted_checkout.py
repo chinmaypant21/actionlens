@@ -4,7 +4,8 @@ from typing import Any
 
 import networkx as nx
 
-from actionlens.models import Finding, Rule, RuleCategory, Severity, WorkflowAST
+from actionlens.models import Finding, Rule, WorkflowAST
+from actionlens.sast.rules.catalog import RULE_CATALOG
 
 try:
 	from .taint_graph import NodeType, TaintGraph
@@ -24,19 +25,7 @@ UNTRUSTED_CHECKOUT_CONTEXTS = {
 class UntrustedCheckoutRule(Rule):
 	"""Detect an untrusted PR ref checked out under ``pull_request_target``."""
 
-	rule_id: str = "AL-CODE-002"
-	name: str = "Untrusted Checkout on Privileged Trigger"
-	severity: Severity = Severity.HIGH
-	category: RuleCategory = RuleCategory.CODE_ANALYSIS
-	description: str = (
-		"An untrusted pull request ref is checked out in a privileged "
-		"pull_request_target workflow."
-	)
-	cwe: str = "CWE-829"
-	remediation: str = (
-		"Do not check out pull request head refs in pull_request_target workflows. "
-		"Use the trusted base revision or run untrusted code in an isolated workflow."
-	)
+	metadata = RULE_CATALOG["AL-CODE-002"]
 
 	def __init__(self, visualize_path: str | None = None):
 		self.visualize_path = visualize_path
@@ -50,6 +39,8 @@ class UntrustedCheckoutRule(Rule):
 			source_node = path[-1]
 			findings.append(Finding(
 				rule_id=self.rule_id,
+				cwe=self.cwe,
+				owasp_cicd=self.owasp_cicd,
 				severity=self.severity,
 				file_path=ast.file_path,
 				line=sink_lines.get(sink_node.value, -1),

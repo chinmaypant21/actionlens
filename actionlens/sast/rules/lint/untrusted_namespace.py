@@ -1,7 +1,8 @@
 """AL-LINT-002: Compromised / Untrusted Action Namespace."""
 
 from typing import Optional, Set
-from actionlens.models import Finding, Rule, RuleCategory, Severity, WorkflowAST
+from actionlens.models import Finding, Rule, Severity, WorkflowAST
+from actionlens.sast.rules.catalog import RULE_CATALOG
 from actionlens.utils import levenshtein_distance
 
 # Standard verified official namespaces
@@ -26,19 +27,7 @@ POPULAR_OFFICIAL_ACTIONS: set[str] = {
 class UntrustedNamespaceRule(Rule):
     """AL-LINT-002: Flag actions referencing typo-squatted or unverified namespaces."""
 
-    rule_id: str = "AL-LINT-002"
-    name: str = "Compromised / Untrusted Action Namespace"
-    severity: Severity = Severity.HIGH #default val
-    category: RuleCategory = RuleCategory.LINT
-    description: str = (
-        "A 'uses:' statement references a suspicious, unverified, or potentially "
-        "typo-squatted action namespace (e.g. 'actons/checkout' instead of 'actions/checkout')."
-    )
-    cwe: str = "CWE-829"  # Inclusion of Functionality from Untrusted Control Sphere
-    remediation: str = (
-        "Verify the authenticity of the action author and pin the action to a trusted or "
-        "allowlisted namespace."
-    )
+    metadata = RULE_CATALOG["AL-LINT-002"]
 
     def __init__(
         self,
@@ -101,6 +90,8 @@ class UntrustedNamespaceRule(Rule):
                         findings.append(
                             Finding(
                                 rule_id=self.rule_id,
+                                cwe=self.cwe,
+                                owasp_cicd=self.owasp_cicd,
                                 severity=Severity.HIGH,
                                 file_path=ast.file_path,
                                 line=line_num,
@@ -126,6 +117,8 @@ class UntrustedNamespaceRule(Rule):
                     findings.append(
                         Finding(
                             rule_id=self.rule_id,
+                            cwe=self.cwe,
+                            owasp_cicd=self.owasp_cicd,
                             severity=Severity.HIGH,
                             file_path=ast.file_path,
                             line=line_num,
@@ -147,6 +140,8 @@ class UntrustedNamespaceRule(Rule):
                     findings.append(
                         Finding(
                             rule_id=self.rule_id,
+                            cwe=self.cwe,
+                            owasp_cicd=self.owasp_cicd,
                             severity=Severity.MEDIUM,
                             file_path=ast.file_path,
                             line=line_num,

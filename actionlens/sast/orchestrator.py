@@ -17,11 +17,6 @@ from actionlens.sast.rules.taint_analysis.untrusted_checkout import UntrustedChe
 class SASTOrchestrator:
     """Central engine orchestrator that executes registered SAST rules against workflow ASTs."""
 
-
-# 
-# ---------- TODO ---------
-# Move IDs outside of rule classes to an object 
-#
     def __init__(self):
         """Initialize orchestrator with all active detection rules."""
         self.rules: list[Rule] = [

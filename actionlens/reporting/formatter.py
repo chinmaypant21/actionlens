@@ -32,7 +32,8 @@ def format_cli_table(findings: Sequence[Finding]) -> str:
         table = Table(title="ActionLens SAST Findings Report", show_lines=True)
         table.add_column("Rule ID", style="cyan", no_wrap=True)
         table.add_column("Severity", style="bold")
-        table.add_column("Location", style="yellow")
+        table.add_column("OWASP CI/CD", style="magenta")
+        # table.add_column("Location", style="yellow")
         table.add_column("Message", style="white")
         table.add_column("Remediation", style="green")
 
@@ -48,7 +49,8 @@ def format_cli_table(findings: Sequence[Finding]) -> str:
             table.add_row(
                 f.rule_id,
                 f"[{sev_style}]{f.severity.value}[/{sev_style}]",
-                f"{f.file_path}:{f.line}",
+                f.owasp_cicd or "-",
+                # f"{f.file_path}:{f.line}",
                 f.message,
                 f.remediation,
             )
@@ -71,6 +73,7 @@ def format_cli_table(findings: Sequence[Finding]) -> str:
         for f in findings:
             lines.extend([
                 f"[{f.severity.value}] {f.rule_id} at {f.file_path}:{f.line}",
+                f"  OWASP CI/CD: {f.owasp_cicd or '-'}",
                 f"  Message:     {f.message}",
                 f"  Remediation: {f.remediation}",
                 "-" * 80,

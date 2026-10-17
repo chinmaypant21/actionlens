@@ -51,15 +51,15 @@ The linter performs AST pattern matching on workflow structure and metadata with
 - **Rule Interface (Python):**
   ```python
   from actionlens.models import Rule, Finding, WorkflowAST
+  from actionlens.sast.rules.catalog import RULE_CATALOG
 
   class LintRule(Rule):
-      id: str
-      name: str
-      description: str
+      metadata = RULE_CATALOG["AL-LINT-XXX"]
 
       def check(self, ast: WorkflowAST) -> list[Finding]:
           ...
   ```
+- **Rule Metadata:** All rule metadata (ID, name, default severity, category, description, CWE, remediation) lives in a single catalog, [`actionlens/sast/rules/catalog.py`](../actionlens/sast/rules/catalog.py). Rule classes contain only detection logic and reference their catalog entry via `metadata`; the `Rule` base class exposes `rule_id`, `severity`, `remediation`, etc. as read-only properties.
 
 ---
 

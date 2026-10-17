@@ -1,17 +1,12 @@
 """AL-LINT-003: Missing or Over-scoped Permissions Block."""
 
-from actionlens.models import Finding, Rule, RuleCategory, Severity, WorkflowAST
+from actionlens.models import Finding, Rule, Severity, WorkflowAST
+from actionlens.sast.rules.catalog import RULE_CATALOG
 
 class PermissionsBlockRule(Rule):
     """AL-LINT-003: Flags missing top-level permissions or broad 'write-all' token access."""
 
-    rule_id: str = "AL-LINT-003"
-    name: str = "Missing or Over-scoped Permissions Block"
-    severity: Severity = Severity.LOW #default val
-    category: RuleCategory = RuleCategory.LINT
-    description: str = "The workflow lacks a top-level permissions: block (defaulting GITHUB_TOKEN to broad repository permissions), or explicitly grants broad 'write-all' access."
-    cwe: str = "CWE-276"  # Incorrect Default Permissions
-    remediation: str = "Specify a restrictive top-level 'permissions: {}' block and grant only minimal scoped permissions to individual jobs as needed."
+    metadata = RULE_CATALOG["AL-LINT-003"]
 
     def check(self, ast: WorkflowAST) -> list[Finding]:
         findings: list[Finding] = []
@@ -21,6 +16,8 @@ class PermissionsBlockRule(Rule):
             findings.append(
                 Finding(
                     rule_id=self.rule_id,
+                    cwe=self.cwe,
+                    owasp_cicd=self.owasp_cicd,
                     severity=self.severity,
                     file_path=ast.file_path,
                     line=1,
@@ -38,6 +35,8 @@ class PermissionsBlockRule(Rule):
             findings.append(
                 Finding(
                     rule_id=self.rule_id,
+                    cwe=self.cwe,
+                    owasp_cicd=self.owasp_cicd,
                     severity=Severity.MEDIUM,
                     file_path=ast.file_path,
                     line=line_num,
@@ -74,6 +73,8 @@ class PermissionsBlockRule(Rule):
                 findings.append(
                     Finding(
                         rule_id=self.rule_id,
+                        cwe=self.cwe,
+                        owasp_cicd=self.owasp_cicd,
                         severity=Severity.MEDIUM,
                         file_path=ast.file_path,
                         line=line_num,

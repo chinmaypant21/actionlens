@@ -5,7 +5,8 @@ Detects untrusted user input being passed to a script execution context
 """
 
 from typing import Optional, Set, Any
-from actionlens.models import Finding, Rule, RuleCategory, Severity, WorkflowAST
+from actionlens.models import Finding, Rule, WorkflowAST
+from actionlens.sast.rules.catalog import RULE_CATALOG
 import re
 import networkx as nx
 
@@ -114,19 +115,7 @@ def extract_write_to_githuboutput(line: str) -> tuple[str, list[str]] | None:
 class ScriptInjectionRule(Rule):
     """AL-CODE-001: Detect untrusted user input being passed to script execution contexts."""
 
-    rule_id: str = "AL-CODE-001"
-    name: str = "Script Injection (RCE)"
-    severity: Severity = Severity.HIGH
-    category: RuleCategory = RuleCategory.CODE_ANALYSIS
-    description: str = (
-        "Untrusted user input is being passed to a script execution context "
-        "(e.g., shell commands, Python scripts) without proper sanitization or validation."
-    )
-    cwe: str = "CWE-78"  # Improper Neutralization of Special Elements used in an OS Command ('OS Command Injection')
-    remediation: str = (
-        "Validate and sanitize all user input before executing scripts. "
-        "Use intermediate environment variables to avoid direct shell execution."
-    )
+    metadata = RULE_CATALOG["AL-CODE-001"]
 
     def __init__(
             self, visualize_path: str | None = None
@@ -147,6 +136,8 @@ class ScriptInjectionRule(Rule):
             line_number = sink_lines.get(sink_node.value, -1)
             findings.append(Finding(
                 rule_id=self.rule_id,
+                cwe=self.cwe,
+                owasp_cicd=self.owasp_cicd,
                 severity=self.severity,
                 file_path=ast.file_path,
                 line=line_number,

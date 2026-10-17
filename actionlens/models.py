@@ -108,17 +108,62 @@ class Finding(BaseModel):
     line: int
     message: str
     remediation: str
+    cwe: str
+    owasp_cicd: str
+
+
+class RuleMetadata(BaseModel):
+    """Static, descriptive metadata for a rule. Defined centrally in actionlens.sast.rules.catalog."""
+    rule_id: str
+    name: str
+    severity: Severity  # default severity; individual findings may override
+    category: RuleCategory
+    description: str
+    cwe: str         # Common Weakness Enumeration
+    owasp_cicd: str  # OWASP Top 10 CI/CD Security Risks category
+    remediation: str
+
+    model_config = {"frozen": True}
 
 
 class Rule(ABC):
-    """Abstract base class for all ActionLens detection rules."""
-    rule_id: str
-    name: str
-    severity: Severity
-    category: RuleCategory
-    description: str
-    cwe: str
-    remediation: str
+    """Abstract base class for all ActionLens detection rules.
+
+    Subclasses set ``metadata`` (from the rule catalog) and implement ``check``.
+    """
+    metadata: RuleMetadata
+
+    @property
+    def rule_id(self) -> str:
+        return self.metadata.rule_id
+
+    @property
+    def name(self) -> str:
+        return self.metadata.name
+
+    @property
+    def severity(self) -> Severity:
+        return self.metadata.severity
+
+    @property
+    def category(self) -> RuleCategory:
+        return self.metadata.category
+
+    @property
+    def description(self) -> str:
+        return self.metadata.description
+
+    @property
+    def cwe(self) -> str:
+        return self.metadata.cwe
+
+    @property
+    def owasp_cicd(self) -> str:
+        return self.metadata.owasp_cicd
+
+    @property
+    def remediation(self) -> str:
+        return self.metadata.remediation
 
     @abstractmethod
     def check(self, ast: WorkflowAST) -> list[Finding]:
