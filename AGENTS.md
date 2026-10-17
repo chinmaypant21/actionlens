@@ -1,85 +1,145 @@
-# AGENTS.md — Contributor & Autonomous Agent Guide
+# AGENTS.md — Contributor & Agent Guide
 
-This document provides essential instructions, context, and development guidelines for AI agents and human contributors working on the **ActionLens** codebase.
-
----
-
-## 1. Project Mission & Identity
-
-- **What ActionLens Is:** A specialized static analyzer (SAST) and dynamic exploit verifier (DAST) for GitHub Actions CI/CD workflows.
-- **Goal:** Detect high-risk security anti-patterns and unsafe dataflows (such as script injections, token over-scoping, and supply chain vulnerabilities) with high precision and low false positives, plus optional sandbox exploit verification.
-- **Stage:** Research-driven Proof of Concept (PoC). Focus on clean modularity, precision on key vulnerabilities, and room to add/remove detection rules based on ongoing research.
+Instructions and context for AI agents and human contributors working on **ActionLens**. This file describes the code **as it currently is**. Where the other docs describe planned features, this file says so.
 
 ---
 
-## 2. Core Architectural Principles
+## 1. What ActionLens Is
 
-When implementing features or rules, follow these architectural boundaries:
-
-1. **Strict Separation of Concerns:**
-   - **Workflow Parser (`parser/` - Go):** Standalone Go binary using `actionlint` that reads workflow YAML and expressions, emitting a normalized AST JSON.
-   - **Security Linting (`actionlens/sast/rules/lint/` - Python):** Fast, AST-only pattern and structural checks (e.g., checking if a `uses:` line has a commit SHA or a mutable tag, or checking whether top-level permissions are specified). Must NOT require complex data-flow tracking.
-   - **Code Analysis / Taint Engine (`actionlens/sast/taint.py`, `actionlens/sast/rules/codeanalysis/` - Python):** Multi-step semantic analysis using `networkx`. Tracks how untrusted input (sources like `github.event.issue.body`) flows through variables/environments (propagators) to execution contexts (sinks like bash `run:` scripts).
-   - **DAST / Dynamic Layer (`actionlens/dast/` - Python):** Operates *after* SAST. Given an identified candidate vulnerability, uses the GitHub API (`PyGithub` / `httpx`) to trigger an orchestrated run with a safe canary payload in a test harness and inspects run logs to verify true exploitability.
-
-2. **Extensibility & Research-Friendly:**
-   - Detectors must inherit from the common `Rule` base class in `actionlens.models`.
-   - Every rule must have a unique identifier (e.g., `AL-LINT-001`, `AL-CODE-001`), severity, description, remediation guidance, and CWE mapping.
-   - Rules must be easily enabled, disabled, or tested in isolation.
-
-3. **Deterministic & Safe Testing:**
-   - Never run DAST verification against production, external, or unauthorized repositories.
-   - SAST unit and integration tests must run offline via `pytest` using YAML fixtures in [`testdata/`](file:///Users/chinz/projects/KTH/actionlens/testdata/).
+- A static analyzer (SAST) for GitHub Actions workflow files. It detects supply-chain, permission, runner, and injection risks.
+- A research Proof of Concept. Priorities are clean modularity, few false positives on the rules that exist, and making it easy to add, remove, or change rules as the research evolves.
+- **Implemented:** the Go parser, 4 lint rules, 2 taint-analysis rules, the CLI, and a terminal and JSON report.
+- **Not implemented (future scope):** DAST exploit verification, SARIF output, and a shared taint engine module. Do not assume these exist, and do not import them.
 
 ---
 
-## 3. Technology Stack & Dependencies
+## 2. Pipeline
 
-- ** Workflow Parser (Go):** [`github.com/rhysd/actionlint`](https://pkg.go.dev/github.com/rhysd/actionlint) for typed GitHub Actions AST parsing.
-- **Core Engine (Python 3.10+):**
-  - **Graph & Dataflow:** [`networkx`](https://networkx.org/) for directed taint flow graph representation and reachability path analysis.
-  - **Data Modeling:** [`pydantic`](https://docs.pydantic.dev/) for AST schemas and finding models.
-  - **Reporting:** SARIF (Static Analysis Results Interchange Format) v2.1.0 and human-readable terminal output via [`rich`](https://rich.readthedocs.io/).
-  - **DAST Client:** [`PyGithub`](https://pygithub.readthedocs.io/) and [`httpx`](https://www.python-httpx.org/).
-  - **Test Framework:** [`pytest`](https://docs.pytest.org/).
+```
+workflow.yml ──► parser/actionlens-parser (Go) ──► AST JSON on stdout
+             ──► actionlens/parser.py           ──► WorkflowAST (pydantic)
+             ──► SASTOrchestrator               ──► runs every registered Rule.check(ast)
+             ──► reporting/formatter.py         ──► rich table (cli) or JSON
+```
 
----
-
-## 4. Rule Taxonomy & Conventions
-
-Each rule should belong to one of two categories:
-
-### A. SAST: Security Linting (`AL-LINT-XXX`)
-Checks the structure, configuration, and syntax of workflow files without tracking variable flow:
-- `AL-LINT-001`: Unpinned Third-Party Action (e.g. `uses: actions/checkout@v3` instead of commit SHA).
-- `AL-LINT-002`: Missing Default Permissions Block (top-level workflow permissions omitted).
-- `AL-LINT-003`: Dangerous Runner Selection (e.g. untrusted self-hosted runners on public repos).
-
-### B. SAST: Code & Taint Analysis (`AL-CODE-XXX`)
-Tracks sources, propagators, and sinks across workflow jobs and steps:
-- `AL-CODE-001`: Expression / Script Injection (untrusted GitHub context directly interpolated into `run:` scripts).
-- `AL-CODE-002`: Excessive Token Permissions (jobs executing risky operations with broad default write permissions).
-- `AL-CODE-003`: Untrusted Checkout via `pull_request_target` (checking out head branch of a PR in privileged context).
+| Path | Role |
+| :--- | :--- |
+| `parser/` | Go CLI wrapping [`rhysd/actionlint`](https://pkg.go.dev/github.com/rhysd/actionlint). `parser.go` converts actionlint's AST into the normalized schema. `expression.go` extracts `${{ }}` contexts and parses `uses:` refs. `models.go` holds the JSON schema. `main.go` takes a file path, `-file`, or stdin. |
+| `actionlens/parser.py` | Locates the binary (`parser/actionlens-parser`, then the repo root, then `PATH`), runs it, and validates the output into `WorkflowAST`. `load_ast_json()` loads a pre-generated AST JSON instead. |
+| `actionlens/models.py` | Pydantic AST models (`WorkflowAST`, `JobAST`, `StepAST`, …), plus `Finding`, `RuleMetadata`, `Severity`, `RuleCategory`, and the abstract `Rule` base class. |
+| `actionlens/sast/rules/catalog.py` | **Single source of truth for rule metadata** (`RULE_CATALOG`). |
+| `actionlens/sast/rules/lint/` | AST-only structural rules (`AL-LINT-*`). |
+| `actionlens/sast/rules/taint_analysis/` | Data-flow rules (`AL-CODE-*`), the `TaintGraph` (`networkx.DiGraph` subclass), and an optional pyvis visualizer. |
+| `actionlens/sast/orchestrator.py` | `SASTOrchestrator`. It holds the list of active rules, accepts YAML, AST JSON, or a `WorkflowAST`, and sorts findings by `(file_path, line)`. |
+| `actionlens/reporting/formatter.py` | `format_cli_table` (rich, with a plain-text fallback) and `format_findings_json`. |
+| `actionlens/cli.py` | `actionlens <file> [--format cli\|json]`. Exits with `1` if any finding is HIGH or CRITICAL, otherwise `0`. |
+| `actionlens/utils/` | Helpers (currently `levenshtein_distance`). |
+| `docs/` | `architecture.md`, `vulnerability-matrix.md`, `development.md`, and per-rule specs in `docs/rules/`. |
+| `research/` | Research notes (e.g. `sources_and_sinks.md`). This is input for the rule design, not the specification of the code. |
 
 ---
 
-## 5. Development Workflow for New Rules
+## 3. Rule Catalog (current)
 
-When creating a new detection rule:
-1. **Document First:** Add or update the rule entry in [`docs/vulnerability-matrix.md`](file:///Users/chinz/projects/KTH/actionlens/docs/vulnerability-matrix.md) with threat model, sources, and sinks.
-2. **Add Test Fixtures:**
-   - Create a minimal vulnerable sample in `testdata/vulnerable/<rule-id>.yml`.
-   - Create a remediated / benign counterpart in `testdata/secure/<rule-id>.yml`.
-3. **Implement Rule:**
-   - For lint rules: implement under `actionlens/sast/rules/lint/`.
-   - For dataflow rules: implement under `actionlens/sast/rules/codeanalysis/` using the taint engine in `actionlens/sast/taint.py`.
-4. **Write Tests:** Add Python `pytest` tests verifying both positive and negative cases.
+| ID | Class | File | Default severity | Detects |
+| :--- | :--- | :--- | :--- | :--- |
+| `AL-LINT-001` | `UnpinnedActionRule` | `lint/unpinned_action.py` | MEDIUM | `uses:` not pinned to a 40-char SHA. Skips local `./` actions. |
+| `AL-LINT-002` | `UntrustedNamespaceRule` | `lint/untrusted_namespace.py` | HIGH | Typo-squatted owners (Levenshtein ≤ 2 from a trusted namespace), and popular official repo names under a foreign owner. Optional `flag_all_untrusted` (MEDIUM). Takes a configurable `trusted_namespaces` (default `actions`, `github`). |
+| `AL-LINT-003` | `PermissionsBlockRule` | `lint/permissions_block.py` | LOW | Missing top-level `permissions:` (LOW). `write-all` at the top level or in a job, including per-scope values (MEDIUM). |
+| `AL-LINT-004` | `SelfHostedRunnerRule` | `lint/self_hosted_runner.py` | HIGH | `self-hosted` runner label. HIGH with untrusted triggers, MEDIUM otherwise. |
+| `AL-CODE-001` | `ScriptInjectionRule` | `taint_analysis/script_injection.py` | HIGH | An untrusted context reaches a sink (`run`, `with.script`, `with.args`, `with.ref`, …) without a sanitizer. This includes flows through `env.*` and `$GITHUB_OUTPUT` step outputs. |
+| `AL-CODE-002` | `UntrustedCheckoutRule` | `taint_analysis/untrusted_checkout.py` | HIGH | `actions/checkout` with `with.ref` set to a PR head ref or SHA under `pull_request_target`. |
+
+All findings carry `rule_id`, `severity`, `file_path`, `line`, `message`, `remediation`, `cwe`, and `owasp_cicd` (an OWASP Top 10 CI/CD Security Risks category). Rules may override the default severity on individual findings.
+
+> Rule IDs are permanent. Never renumber or reuse an ID. Add the next free number in the matching prefix.
 
 ---
 
-## 6. Guidelines for AI Agents
+## 4. Taint Analysis: How It Actually Works
 
-- **Model & AST Schemas:** When writing Python rules, inspect `actionlens.models.WorkflowAST` schemas. When working in `parser/`, verify Go types against `actionlint` AST types (`*actionlint.Workflow`, `*actionlint.Job`, `*actionlint.Step`, `*actionlint.ExecRun`).
-- **Maintain Test Suite Quality:** Ensure `pytest tests/` passes after adding or editing rule or engine code. If modifying the Go parser, ensure `go test ./...` passes inside `parser/`.
-- **Keep Documentation Updated:** Whenever adding new detectors or modifying graph algorithms, update [`docs/architecture.md`](file:///Users/chinz/projects/KTH/actionlens/docs/architecture.md) and [`docs/vulnerability-matrix.md`](file:///Users/chinz/projects/KTH/actionlens/docs/vulnerability-matrix.md).
-- **Safe Canary Payloads Only:** In any DAST or verification code, never generate malicious, exfiltrating, or destructive payloads. Use innocuous verification markers (e.g. unique UUID or hash echoed into runner logs).
+There is no shared `taint.py`. Each `AL-CODE-*` rule has its own `build_taint_graph(ast)` and path finder, both built on `TaintGraph` from `taint_graph.py`.
+
+- **Node types** (`NodeType`): `SOURCE`, `PROPAGATOR`, `SANITIZER`, `SINK`. `TaintGraph.get_node` deduplicates nodes by `(type, value)`.
+- **Edge direction is sink → source.** Path search runs `nx.all_simple_paths(graph, sink, source)`.
+- **Sources:** the hard-coded `UNTRUSTED_CONTEXTS` set in `script_injection.py`, matched by regex (longest match first, case-insensitive). AL-CODE-002 has its own smaller `UNTRUSTED_CHECKOUT_CONTEXTS`.
+- **Sinks:** the `SINKS` set. A sink is identified by the expression's `location` string emitted by the Go parser (`run`, `with.<input>`, `env.<NAME>`, `if`).
+- **Sanitizer rule (AL-CODE-001):** a path is ignored when the node right after the sink is a `SANITIZER`, for example an untrusted value bound to `env:` and read as `$VAR` in the script.
+- **Line numbers** are the **step's** start line (`step.pos.line`), not the line of the expression inside `run:`. Tests assert this.
+- **Visualization:** pass `visualize_path="out.html"` to a taint rule to write a pyvis graph. Test files have a `CREATE_TAINT_GRAPH` toggle for this. Do not commit the generated HTML.
+
+**Known gaps** (worth knowing before you "fix" a test or add a rule):
+- Workflow-level and job-level `env:`, job `outputs:`, `needs.*`, reusable workflows, and matrix/strategy are parsed partially or not at all, and are not used in taint flows.
+- `find_source` returns only the first untrusted context in an expression.
+- `github.event.inputs.*` and wildcard sources are not modeled.
+
+---
+
+## 5. Parser ↔ Python Schema Contract
+
+The JSON emitted by `parser/models.go` must match `actionlens/models.py`. When a rule needs a workflow property that is not in the AST yet:
+
+1. Add the field to the Go structs in `parser/models.go` and populate it in `parser/parser.go`.
+2. Add the matching field to the pydantic model. Use `Field(alias=...)` for reserved names, as in `if_`/`if` and `with_`/`with`.
+3. Rebuild the binary. Python tests run against the built binary, not the Go source.
+4. Add or adjust a Go test in `parser/parser_test.go`.
+
+Expressions are extracted per step from `if`, `env.<KEY>`, `run`, and `with.<input>`. The `context` field is the dotted context path resolved through actionlint's expression parser. If parsing fails, it falls back to the raw expression text.
+
+---
+
+## 6. Adding or Changing a Rule
+
+1. **Document it.** Add a row to `docs/vulnerability-matrix.md`. For non-trivial rules, also add a spec in `docs/rules/<rule_name>.md`.
+2. **Register the metadata** in `_CATALOG` in `actionlens/sast/rules/catalog.py`: `name`, `severity`, `category`, `description`, `cwe`, `owasp_cicd`, `remediation`. Missing or misspelled fields fail at import time.
+3. **Implement the rule:**
+   - Lint: `actionlens/sast/rules/lint/<rule_name>.py`, also exported from `lint/__init__.py`.
+   - Data-flow: `actionlens/sast/rules/taint_analysis/<rule_name>.py`, reusing `TaintGraph` and `NodeType`.
+   - Subclass `Rule`, set `metadata = RULE_CATALOG["AL-XXX-NNN"]`, implement `check(self, ast) -> list[Finding]`, and read metadata through the base-class properties (`self.rule_id`, `self.cwe`, …). Do not hard-code metadata in the class.
+   - For line numbers, fall back from the element's `pos` to the job's `pos` to `1`, as the existing rules do.
+4. **Activate it** by adding an instance to `self.rules` in `SASTOrchestrator.__init__`. There is no automatic discovery.
+5. **Add fixtures:**
+   - `testdata/vulnerable/<rule_name>.yml` and `testdata/secure/<rule_name>.yml`.
+   - Name files by topic (e.g. `unpinned_action.yml`), not by rule ID.
+   - Group several fixtures for one rule in a subfolder (e.g. `script_injections/`).
+   - `testdata/others/` holds larger exploratory workflows that no test uses.
+   - Pin actions in fixtures to SHAs unless the fixture is meant to trigger AL-LINT-001.
+6. **Write tests** in `tests/test_<rule_name>.py` covering the vulnerable case (count, `rule_id`, severity, line, message content) and the secure case (`findings == []`). An orchestrator end-to-end check is a welcome addition.
+7. **Update the docs.** Update `README.md` and `docs/architecture.md` if the rule changes the pipeline or the rule list.
+
+---
+
+## 7. Setup, Build & Test
+
+Requirements: Go (version per `parser/go.mod`, currently `go 1.27.1`) and Python ≥ 3.10.
+
+```bash
+# Go parser: must be built before any Python test or scan
+cd parser && go test ./... && go build -o actionlens-parser . && cd ..
+
+# Python
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt && pip install -e .
+
+pytest tests/                                    # all Python tests (need the built binary)
+actionlens testdata/vulnerable/unpinned_action.yml            # table output
+actionlens testdata/vulnerable/unpinned_action.yml -f json    # JSON output
+python -m actionlens <file>                                   # same, without installing
+```
+
+- The binary `parser/actionlens-parser` is git-ignored. Rebuild it after any change in `parser/`, or the Python tests will run against stale output.
+- Runtime dependencies: `pydantic`, `networkx`, `rich`, `pyvis`. Dev dependency: `pytest`. Keep `pyproject.toml` and `requirements.txt` in sync.
+- There is no CI yet. Run both test suites locally before declaring work done.
+
+---
+
+## 8. Rules for Agents
+
+- **Verify against the code, not the docs.** `docs/architecture.md` and `docs/development.md` still describe some planned items as if they exist: `sast/taint.py`, `rules/codeanalysis/`, `sast/linter.py`, `dast/`, SARIF, and typer/click subcommands. Treat those as roadmap. If your change makes a doc statement true or more wrong, update the doc.
+- **Keep lint rules AST-only.** Anything that needs to follow values across env vars, outputs, or steps belongs in `taint_analysis/`.
+- **Prefer precision over recall.** A new heuristic that adds false positives on `testdata/secure/` is a regression.
+- **Keep tests offline and deterministic.** No network calls, and no GitHub API calls in tests.
+- **Leave existing provenance comments alone.** Some files note which AI tool helped write them (e.g. `# Generated by …`). Do not remove them.
+- **DAST (when it is built):**
+  - Only run it against isolated sandbox repositories you are authorized to use. Never run it against production or third-party repos.
+  - Use only innocuous canary payloads, such as a unique UUID echoed to the runner log. Never use exfiltrating or destructive payloads.
