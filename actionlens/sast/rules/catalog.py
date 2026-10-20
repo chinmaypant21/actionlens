@@ -15,7 +15,7 @@ _CATALOG = {
         "severity": Severity.MEDIUM,
         "category": RuleCategory.LINT,
         "description": "A 'uses:' statement references a mutable branch or tag rather than a full, 40-character commit SHA.",
-        "cwe": "CWE-1357",  # Reliance on Insufficiently Trustworthy Component
+        "cwe": "CWE-494",  # Download of Code Without Integrity Check
         "owasp_cicd": "CICD-SEC-3: Dependency Chain Abuse",
         "remediation": "Pin the action to a full 40-character commit SHA.",
     },
