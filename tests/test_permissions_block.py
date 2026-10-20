@@ -1,3 +1,5 @@
+# Created with Opus 5.5 and Gemini 3.8 Flash
+
 """Tests for AL-LINT-003: Missing or Over-scoped Permissions Block."""
 
 from pathlib import Path

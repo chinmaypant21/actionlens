@@ -1,3 +1,5 @@
+# Created with Opus 5.5 and Gemini 3.8 Flash
+
 """Tests for AL-CODE-001: Script Injection Vulnerability."""
 
 from pathlib import Path

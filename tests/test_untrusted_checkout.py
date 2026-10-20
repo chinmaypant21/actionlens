@@ -1,3 +1,5 @@
+# Created with Opus 5.5 and Gemini 3.8 Flash
+
 """Tests for AL-CODE-002: Untrusted checkout on a privileged trigger."""
 
 from pathlib import Path

@@ -1,3 +1,5 @@
+# Created with Opus 5.5 and Gemini 3.8 Flash
+
 """Tests for AL-LINT-001: Unpinned Third-Party Action."""
 
 from pathlib import Path

@@ -105,7 +105,7 @@ Expressions are extracted per step from `if`, `env.<KEY>`, `run`, and `with.<inp
    - `testdata/others/` holds larger exploratory workflows that no test uses.
    - Pin actions in fixtures to SHAs unless the fixture is meant to trigger AL-LINT-001.
 6. **Write tests** in `tests/test_<rule_name>.py` covering the vulnerable case (count, `rule_id`, severity, line, message content) and the secure case (`findings == []`). An orchestrator end-to-end check is a welcome addition.
-7. **Update the docs.** Update `README.md` and `docs/architecture.md` if the rule changes the pipeline or the rule list.
+7. **Update the docs.** Update `docs/architecture.md` if the rule changes the pipeline or the rule list. Keep `README.md` as a short entry point: only touch it if a document is added, renamed, or removed from its documentation index.
 
 ---
 

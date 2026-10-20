@@ -1,5 +1,8 @@
 # ActionLens Development & Contribution Guide
 
+> [!NOTE]
+> Used AI to help with the formatting
+
 This guide details the architectural philosophy, technology stack, project structure, and workflow for contributing to **ActionLens**.
 
 ---
@@ -217,7 +220,7 @@ Because there is a HIGH finding, the CLI exits with code `1`.
 
 ```text
 actionlens/
-├── README.md                  # Project overview and architecture diagram
+├── README.md                  # Project entry point and documentation index
 ├── AGENTS.md                  # Contributor & agent guide
 ├── docs/                      # Architectural specifications and documentation
 │   ├── architecture.md        # Technical architecture
@@ -259,9 +262,14 @@ actionlens/
 
 ---
 
-## 6. Local Setup & Testing
+## 6. Setup, Usage & Testing
 
-### 1. Build and Test the Go Parser
+### 1. Prerequisites
+- **Go** (version per `parser/go.mod`, currently 1.27.1) to build the parser.
+- **Python 3.10+** for the analysis engine.
+
+### 2. Build and Test the Go Parser
+The Python engine calls this binary to parse workflows. The binary is git-ignored, so rebuild it after any change in `parser/`.
 ```bash
 cd parser
 go test -v ./...
@@ -269,10 +277,36 @@ go build -o actionlens-parser .
 cd ..
 ```
 
-### 2. Set Up Python Environment
+The parser can also be used on its own to print the normalized AST JSON for a workflow:
 ```bash
-python3 -m venv .venv
+./parser/actionlens-parser <workflow.yml>
+```
+It also accepts `-file <path>`, or reads the workflow from stdin when no file is given.
+
+### 3. Set Up Python Environment
+```bash
+python3 -m venv .venv   # Python 3.10 or newer
 source .venv/bin/activate
 pip install -r requirements.txt
 pip install -e .
+```
+
+### 4. Run the Scanner
+With the virtual environment activated:
+```bash
+# Human-readable table output
+actionlens testdata/vulnerable/excessive_permissions.yml
+
+# Same, without installing the package
+python3 -m actionlens testdata/vulnerable/excessive_permissions.yml
+
+# JSON output
+actionlens testdata/vulnerable/excessive_permissions.yml --format json
+```
+You can also pass a pre-generated AST JSON file instead of a workflow YAML file. The command exits with code `1` if any finding is HIGH or CRITICAL, and `0` otherwise.
+
+### 5. Run the Test Suite
+The Python tests run against the built parser binary, so build it first (step 2).
+```bash
+pytest -v tests/
 ```

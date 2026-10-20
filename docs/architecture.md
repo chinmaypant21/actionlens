@@ -1,6 +1,13 @@
 # ActionLens Architecture Specification
 
-This document details the architectural design of **ActionLens**, a static analysis (SAST) tool. Dynamic verification (DAST) was part of the original plan but has been moved to future scope. It is described in Section 3 only as a possible extension and is not implemented.
+> [!NOTE]
+> Used AI to help with the formatting
+
+This document details the architectural design of **ActionLens**, a static analysis (SAST) tool for GitHub Actions workflows.
+
+Modern CI/CD pipelines hold privileged access to source code, cloud credentials, production environments, and release artifacts. ActionLens looks for security risks in workflow definitions before they run: untrusted data reaching execution sinks, untrusted pull request code checked out under privileged triggers, unpinned or impersonated third-party actions, over-scoped token permissions, and self-hosted runners.
+
+Dynamic verification (DAST) was part of the original plan but has been moved to future scope. It is described in Section 3 only as a possible extension and is not implemented.
 
 ---
 

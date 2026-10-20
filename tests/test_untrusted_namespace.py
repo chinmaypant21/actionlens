@@ -1,3 +1,5 @@
+# Created with Opus 5.5 and Gemini 3.8 Flash
+
 """Tests for AL-LINT-002: Compromised/Untrusted Action Namespace."""
 
 from pathlib import Path
