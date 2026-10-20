@@ -1,5 +1,7 @@
 package main
 
+// Used AI to help with the documentation and formatting
+
 // SourcePosition records line and column number of AST elements so findings can point to a location
 type SourcePosition struct {
 	Line int `json:"line"`

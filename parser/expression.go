@@ -8,153 +8,149 @@ import (
 )
 
 var (
-	exprRegex = regexp.MustCompile(`\$\{\{\s*(.*?)\s*\}\}`)
-	shaRegex  = regexp.MustCompile(`^[0-9a-fA-F]{40}$`)
+	// Matches ${{ ... }}
+	expressionPattern = regexp.MustCompile(`\$\{\{\s*(.*?)\s*\}\}`)
+
+	// 40-character commit SHA.
+	commitSHAPattern = regexp.MustCompile(`^[0-9a-fA-F]{40}$`)
 )
 
-// ExtractExpressions finds all expressions like "${{ ... }}" in step: fields
-// and records their context and source field like "run", "if", or "env.TOKEN"
-// Used in parser.go in parseStep
-func ExtractExpressions(input string, location string) []ExpressionInfo {
-	if input == "" {
+// ExtractExpressions find ${{ ... }} expression  in text,
+// and the field it came from (e.g. "run", "if", "env.TOKEN", "with.script").
+func ExtractExpressions(text string, location string) []ExpressionInfo {
+	if text == "" {
 		return nil
 	}
 
-	matches := exprRegex.FindAllStringSubmatch(input, -1)
+	matches := expressionPattern.FindAllStringSubmatch(text, -1)
 	if len(matches) == 0 {
 		return nil
 	}
 
-	results := make([]ExpressionInfo, 0, len(matches))
+	expressions := make([]ExpressionInfo, 0, len(matches))
 	for _, match := range matches {
 		if len(match) < 2 {
 			continue
 		}
-		innerExpr := strings.TrimSpace(match[1])
-		info := parseSingleExpression(innerExpr, location)
-		results = append(results, info)
+		inside := strings.TrimSpace(match[1])
+		expressions = append(expressions, parseExpression(inside, location))
 	}
 
-	return results
+	return expressions
 }
 
-// ParseActionReference parses a "uses:" string into owner, repo, ref and SHA status
-// Used in parser.go for in parseStep
-func ParseActionReference(raw string) *ActionRef {
-	if raw == "" {
+// ParseActionReference splits a "uses: actions/checkout@v4" type string
+// into owner, repo and ref, and checks whether the ref is a commit SHA.
+func ParseActionReference(uses string) *ActionRef {
+	if uses == "" {
 		return nil
 	}
 
-	ref := &ActionRef{
-		Raw: raw,
+	action := &ActionRef{Raw: uses}
+
+	repoPath := uses
+	if at := strings.LastIndex(uses, "@"); at != -1 {
+		repoPath = uses[:at]
+		action.Ref = uses[at+1:]
+		action.IsSHA = commitSHAPattern.MatchString(action.Ref)
 	}
 
-	atIdx := strings.LastIndex(raw, "@")
-	var repoPart, verPart string
-	if atIdx != -1 {
-		repoPart = raw[:atIdx]
-		verPart = raw[atIdx+1:]
-		ref.Ref = verPart
-		ref.IsSHA = shaRegex.MatchString(verPart)
-	} else {
-		repoPart = raw
+	// For "owner/repo/sub/path" only the first two parts are kept.
+	parts := strings.Split(repoPath, "/")
+	if len(parts) >= 2 {
+		action.Owner = parts[0]
+		action.Repo = parts[1]
 	}
 
-	slashParts := strings.Split(repoPart, "/")
-	if len(slashParts) >= 2 {
-		ref.Owner = slashParts[0]
-		ref.Repo = slashParts[1]
-	}
-
-	return ref
+	return action
 }
 
-// ---- Helpers --- //
+// parseExpression runs actionlint's expression parser on the text inside ${{ }}
+// and pulls out the context like github.event.issue.title
+// Note: If parsing fails or no context is found, the raw text is kept instead.
+func parseExpression(inside, location string) ExpressionInfo {
+	info := ExpressionInfo{Location: location}
 
-// parseSingleExpression parses the inner expression text using actionlint's ExprParser
-func parseSingleExpression(inner, location string) ExpressionInfo {
-	info := ExpressionInfo{
-		Location: location,
-	}
-
-	lexer := actionlint.NewExprLexer(inner + " }}")
-	parser := actionlint.NewExprParser()
-	node, err := parser.Parse(lexer)
-	if err != nil || node == nil {
-		info.Context = strings.TrimSpace(inner)
+	// actionlint's lexer expects the closing "}}", so add it back.
+	lexer := actionlint.NewExprLexer(inside + " }}")
+	tree, err := actionlint.NewExprParser().Parse(lexer)
+	if err != nil || tree == nil {
+		info.Context = strings.TrimSpace(inside)
 		return info
 	}
 
-	ctx := extractContextFromNode(node)
-	if ctx != "" {
-		info.Context = ctx
-	} else {
-		info.Context = strings.TrimSpace(inner)
+	info.Context = contextPath(tree)
+	if info.Context == "" {
+		info.Context = strings.TrimSpace(inside)
 	}
 
 	return info
 }
 
-func extractContextFromNode(node actionlint.ExprNode) string {
+// contextPath returns the first context path used in an expression.
+// For comparisons and logical operators only the left side is checked,
+// and for function calls the first argument that has one.
+func contextPath(node actionlint.ExprNode) string {
 	if node == nil {
 		return ""
 	}
 
 	switch n := node.(type) {
-	case *actionlint.VariableNode:
+	case *actionlint.VariableNode: // github
 		return n.Name
-	case *actionlint.ObjectDerefNode:
-		return collectDerefChain(n)
-	case *actionlint.IndexAccessNode:
-		prefix := extractContextFromNode(n.Operand)
-		if strIdx, ok := n.Index.(*actionlint.StringNode); ok {
-			if prefix != "" {
-				return prefix + "." + strIdx.Value
+	case *actionlint.ObjectDerefNode: // github.event.issue.title
+		return derefPath(n)
+	case *actionlint.IndexAccessNode: // github.event['issue']
+		base := contextPath(n.Operand)
+		if key, ok := n.Index.(*actionlint.StringNode); ok {
+			if base != "" {
+				return base + "." + key.Value
 			}
-			return strIdx.Value
+			return key.Value
 		}
-		return prefix
-	case *actionlint.FuncCallNode:
+		return base
+	case *actionlint.FuncCallNode: // contains(github.event.issue.title, 'bug')
 		for _, arg := range n.Args {
-			if ctx := extractContextFromNode(arg); ctx != "" {
-				return ctx
+			if path := contextPath(arg); path != "" {
+				return path
 			}
 		}
 	case *actionlint.CompareOpNode:
-		return extractContextFromNode(n.Left)
+		return contextPath(n.Left)
 	case *actionlint.LogicalOpNode:
-		return extractContextFromNode(n.Left)
+		return contextPath(n.Left)
 	case *actionlint.NotOpNode:
-		return extractContextFromNode(n.Operand)
+		return contextPath(n.Operand)
 	}
 
 	return ""
 }
 
-// collectDerefChain walks an ObjectDerefNode backwards to construct the full context string
-func collectDerefChain(node *actionlint.ObjectDerefNode) string {
-	var props []string
-	curr := node
+// derefPath rebuilds a dotted path like "github.event.issue.title" by walking
+// from the last property back to the variable it starts from.
+func derefPath(node *actionlint.ObjectDerefNode) string {
+	var parts []string
+	current := node
 
-	for curr != nil {
-		props = append([]string{curr.Property}, props...)
-		switch recv := curr.Receiver.(type) {
+	for current != nil {
+		parts = append([]string{current.Property}, parts...)
+		switch receiver := current.Receiver.(type) {
 		case *actionlint.ObjectDerefNode:
-			curr = recv
+			current = receiver
 		case *actionlint.VariableNode:
-			return recv.Name + "." + strings.Join(props, ".")
+			return receiver.Name + "." + strings.Join(parts, ".")
 		case *actionlint.IndexAccessNode:
-			if strIdx, ok := recv.Index.(*actionlint.StringNode); ok {
-				props = append([]string{strIdx.Value}, props...)
+			if key, ok := receiver.Index.(*actionlint.StringNode); ok {
+				parts = append([]string{key.Value}, parts...)
 			}
-			if varNode, ok := recv.Operand.(*actionlint.VariableNode); ok {
-				return varNode.Name + "." + strings.Join(props, ".")
+			if variable, ok := receiver.Operand.(*actionlint.VariableNode); ok {
+				return variable.Name + "." + strings.Join(parts, ".")
 			}
-			return strings.Join(props, ".")
+			return strings.Join(parts, ".")
 		default:
-			return strings.Join(props, ".")
+			return strings.Join(parts, ".")
 		}
 	}
 
-	return strings.Join(props, ".")
+	return strings.Join(parts, ".")
 }

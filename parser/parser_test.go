@@ -1,5 +1,7 @@
 package main
 
+// Used AI to write these test-cases to check if parser is working correctly after each change
+
 import (
 	"os"
 	"path/filepath"

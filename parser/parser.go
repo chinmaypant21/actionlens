@@ -8,167 +8,128 @@ import (
 	"github.com/rhysd/actionlint"
 )
 
-/*
- * --- Future Scope ---
-// Extend AST coverage to include strategy/matrix, containers, services,
-// deployment environments, concurrency, and other job/step settings.
-//
-// Expand expression extraction beyond step-level fields and track source
-// positions more consistently for precise SAST findings.
-*/
+// TODO: the AST does not cover strategy/matrix, containers, services,
+// environments or concurrency yet, and expressions are only extracted from
+// step fields. Positions could also be tracked more precisely for findings.
 
-// --- Parent function ----
-// ParseWorkflow converts a raw workflow YAML byte slice into a normalized WorkflowAST
+// ParseWorkflow parses a workflow file with actionlint and converts it into
+// our own WorkflowAST, which is what the Python side reads.
 func ParseWorkflow(filePath string, content []byte) (*WorkflowAST, error) {
-	w, errs := actionlint.Parse(content)
-	if len(errs) > 0 {
-		var msgs []string
-		for _, e := range errs {
-			msgs = append(msgs, e.Error())
+	workflow, parseErrors := actionlint.Parse(content)
+	if len(parseErrors) > 0 {
+		var messages []string
+		for _, err := range parseErrors {
+			messages = append(messages, err.Error())
 		}
-		return nil, fmt.Errorf("parsing workflow failed: %s", strings.Join(msgs, "; "))
+		return nil, fmt.Errorf("parsing workflow failed: %s", strings.Join(messages, "; "))
 	}
 
-	ast := &WorkflowAST{
-		FilePath: filePath,
-	}
-
-	if w == nil {
+	ast := &WorkflowAST{FilePath: filePath}
+	if workflow == nil {
 		return ast, nil
 	}
 
-	if w.Name != nil {
-		ast.Name = w.Name.Value
+	if workflow.Name != nil {
+		ast.Name = workflow.Name.Value
+	}
+	ast.Triggers = parseTriggers(workflow.On)
+	if workflow.Permissions != nil {
+		ast.Permissions = parsePermissions(workflow.Permissions)
+	}
+	if workflow.Env != nil {
+		ast.Env = parseEnv(workflow.Env)
 	}
 
-	// Triggers
-	ast.Triggers = parseTriggers(w.On)
-
-	// Workflow-level permissions
-	if w.Permissions != nil {
-		ast.Permissions = parsePermissions(w.Permissions)
+	// actionlint keeps jobs in a map, so sort them by line to get the same order every run.
+	jobs := make([]*actionlint.Job, 0, len(workflow.Jobs))
+	for _, job := range workflow.Jobs {
+		jobs = append(jobs, job)
 	}
-
-	// Workflow-level env
-	if w.Env != nil {
-		ast.Env = parseEnv(w.Env)
-	}
-
-	// Jobs (sorted by source line for deterministic ordering)
-	jobList := make([]*actionlint.Job, 0, len(w.Jobs))
-	for _, job := range w.Jobs {
-		jobList = append(jobList, job)
-	}
-	sort.Slice(jobList, func(i, j int) bool {
-		if jobList[i].Pos != nil && jobList[j].Pos != nil {
-			return jobList[i].Pos.Line < jobList[j].Pos.Line
+	sort.Slice(jobs, func(i, j int) bool {
+		if jobs[i].Pos != nil && jobs[j].Pos != nil {
+			return jobs[i].Pos.Line < jobs[j].Pos.Line
 		}
-		return jobList[i].ID.Value < jobList[j].ID.Value
+		return jobs[i].ID.Value < jobs[j].ID.Value
 	})
 
-	ast.Jobs = make([]JobAST, 0, len(jobList))
-	for _, job := range jobList {
+	ast.Jobs = make([]JobAST, 0, len(jobs))
+	for _, job := range jobs {
 		ast.Jobs = append(ast.Jobs, parseJob(job))
 	}
 
 	return ast, nil
 }
 
-// parseTriggers extracts workflow "on:" trigger events and their filters,
-// including activity types, branches, tags, and paths.
+// parseTriggers reads the "on:" events and their types/branches/tags/paths filters.
 func parseTriggers(events []actionlint.Event) []Trigger {
 	if len(events) == 0 {
 		return nil
 	}
 
 	triggers := make([]Trigger, 0, len(events))
-	for _, evt := range events {
-		t := Trigger{
-			Event: evt.EventName(),
-		}
+	for _, event := range events {
+		trigger := Trigger{Event: event.EventName()}
 
-		if we, ok := evt.(*actionlint.WebhookEvent); ok {
-			for _, typ := range we.Types {
-				if typ != nil {
-					t.Types = append(t.Types, typ.Value)
-				}
+		// Filters are only read for webhook events (push, pull_request, ...).
+		if webhook, ok := event.(*actionlint.WebhookEvent); ok {
+			trigger.Types = stringValues(webhook.Types)
+			if webhook.Branches != nil {
+				trigger.Branches = stringValues(webhook.Branches.Values)
 			}
-			if we.Branches != nil {
-				for _, b := range we.Branches.Values {
-					if b != nil {
-						t.Branches = append(t.Branches, b.Value)
-					}
-				}
+			if webhook.Tags != nil {
+				trigger.Tags = stringValues(webhook.Tags.Values)
 			}
-			if we.Tags != nil {
-				for _, tag := range we.Tags.Values {
-					if tag != nil {
-						t.Tags = append(t.Tags, tag.Value)
-					}
-				}
-			}
-			if we.Paths != nil {
-				for _, p := range we.Paths.Values {
-					if p != nil {
-						t.Paths = append(t.Paths, p.Value)
-					}
-				}
+			if webhook.Paths != nil {
+				trigger.Paths = stringValues(webhook.Paths.Values)
 			}
 		}
 
-		triggers = append(triggers, t)
+		triggers = append(triggers, trigger)
 	}
 
 	return triggers
 }
 
-// parsePermissions converts actionlint permission settings into PermissionsConfig,
-// including source position, global permissions, and individual scopes.
-func parsePermissions(p *actionlint.Permissions) *PermissionsConfig {
-	if p == nil {
+// parsePermissions reads a permissions: block, which is either a single value
+// like "write-all" or a map of scopes like {contents: read}.
+func parsePermissions(block *actionlint.Permissions) *PermissionsConfig {
+	if block == nil {
 		return nil
 	}
 
-	cfg := &PermissionsConfig{}
-	if p.Pos != nil {
-		cfg.Pos = SourcePosition{Line: p.Pos.Line, Col: p.Pos.Col}
+	permissions := &PermissionsConfig{Pos: toPosition(block.Pos)}
+	if block.All != nil {
+		permissions.All = block.All.Value
 	}
-
-	if p.All != nil {
-		cfg.All = p.All.Value
-	}
-
-	if len(p.Scopes) > 0 {
-		cfg.Scopes = make(map[string]string, len(p.Scopes))
-		for k, v := range p.Scopes {
-			if v != nil && v.Value != nil {
-				cfg.Scopes[k] = v.Value.Value
+	if len(block.Scopes) > 0 {
+		permissions.Scopes = make(map[string]string, len(block.Scopes))
+		for scope, level := range block.Scopes {
+			if level != nil && level.Value != nil {
+				permissions.Scopes[scope] = level.Value.Value
 			}
 		}
 	}
 
-	return cfg
+	return permissions
 }
 
-// parseEnv converts environment variables into a map of variable names and values.
-func parseEnv(e *actionlint.Env) map[string]string {
-	if e == nil || len(e.Vars) == 0 {
+// parseEnv turns an env: block into a plain name -> value map.
+func parseEnv(env *actionlint.Env) map[string]string {
+	if env == nil || len(env.Vars) == 0 {
 		return nil
 	}
 
-	envMap := make(map[string]string, len(e.Vars))
-	for k, v := range e.Vars {
-		if v != nil && v.Value != nil {
-			envMap[k] = v.Value.Value
+	vars := make(map[string]string, len(env.Vars))
+	for name, variable := range env.Vars {
+		if variable != nil && variable.Value != nil {
+			vars[name] = variable.Value.Value
 		}
 	}
-	return envMap
+	return vars
 }
 
-// parseJob extracts a job's metadata, runner configuration, permissions,
-// dependencies, conditions, environment variables, outputs, and steps.
 func parseJob(j *actionlint.Job) JobAST {
-	job := JobAST{}
+	job := JobAST{Pos: toPosition(j.Pos)}
 
 	if j.ID != nil {
 		job.ID = j.ID.Value
@@ -176,56 +137,25 @@ func parseJob(j *actionlint.Job) JobAST {
 	if j.Name != nil {
 		job.Name = j.Name.Value
 	}
-	if j.Pos != nil {
-		job.Pos = SourcePosition{Line: j.Pos.Line, Col: j.Pos.Col}
-	}
-
 	if j.RunsOn != nil {
-		rc := &RunnerConfig{}
-		if len(j.RunsOn.Labels) > 0 && j.RunsOn.Labels[0] != nil && j.RunsOn.Labels[0].Pos != nil {
-			rc.Pos = SourcePosition{Line: j.RunsOn.Labels[0].Pos.Line, Col: j.RunsOn.Labels[0].Pos.Col}
-		} else if j.RunsOn.Group != nil && j.RunsOn.Group.Pos != nil {
-			rc.Pos = SourcePosition{Line: j.RunsOn.Group.Pos.Line, Col: j.RunsOn.Group.Pos.Col}
-		} else if j.RunsOn.LabelsExpr != nil && j.RunsOn.LabelsExpr.Pos != nil {
-			rc.Pos = SourcePosition{Line: j.RunsOn.LabelsExpr.Pos.Line, Col: j.RunsOn.LabelsExpr.Pos.Col}
-		}
-		if j.RunsOn.Group != nil {
-			rc.Group = j.RunsOn.Group.Value
-		}
-		for _, l := range j.RunsOn.Labels {
-			if l != nil {
-				rc.Labels = append(rc.Labels, l.Value)
-			}
-		}
-		if j.RunsOn.LabelsExpr != nil {
-			rc.Labels = append(rc.Labels, j.RunsOn.LabelsExpr.Value)
-		}
-		job.RunsOn = rc
+		job.RunsOn = parseRunner(j.RunsOn)
 	}
-
 	if j.Permissions != nil {
 		job.Permissions = parsePermissions(j.Permissions)
 	}
-
-	for _, need := range j.Needs {
-		if need != nil {
-			job.Needs = append(job.Needs, need.Value)
-		}
-	}
-
+	job.Needs = stringValues(j.Needs)
 	if j.If != nil {
 		job.If = j.If.Value
 	}
-
 	if j.Env != nil {
 		job.Env = parseEnv(j.Env)
 	}
 
 	if len(j.Outputs) > 0 {
 		job.Outputs = make(map[string]string, len(j.Outputs))
-		for k, v := range j.Outputs {
-			if v != nil && v.Value != nil {
-				job.Outputs[k] = v.Value.Value
+		for name, output := range j.Outputs {
+			if output != nil && output.Value != nil {
+				job.Outputs[name] = output.Value.Value
 			}
 		}
 	}
@@ -238,10 +168,36 @@ func parseJob(j *actionlint.Job) JobAST {
 	return job
 }
 
-// parseStep extracts a step's metadata, execution details, action reference,
-// inputs, environment variables, and expressions.
+// parseRunner reads runs-on. its position come either from the first label
+// , from the runner group or labels expression
+func parseRunner(runsOn *actionlint.Runner) *RunnerConfig {
+	runner := &RunnerConfig{}
+
+	switch {
+	case len(runsOn.Labels) > 0 && runsOn.Labels[0] != nil && runsOn.Labels[0].Pos != nil:
+		runner.Pos = toPosition(runsOn.Labels[0].Pos)
+	case runsOn.Group != nil && runsOn.Group.Pos != nil:
+		runner.Pos = toPosition(runsOn.Group.Pos)
+	case runsOn.LabelsExpr != nil && runsOn.LabelsExpr.Pos != nil:
+		runner.Pos = toPosition(runsOn.LabelsExpr.Pos)
+	}
+
+	if runsOn.Group != nil {
+		runner.Group = runsOn.Group.Value
+	}
+	runner.Labels = stringValues(runsOn.Labels)
+	// e.g. runs-on: ${{ matrix.os }} is kept as the raw expression text
+	if runsOn.LabelsExpr != nil {
+		runner.Labels = append(runner.Labels, runsOn.LabelsExpr.Value)
+	}
+
+	return runner
+}
+
+// parseStep reads a step and collects every ${{ }} expression it uses,
+// tagged with the field it appears in (if, env.X, run, or with.X).
 func parseStep(s *actionlint.Step) StepAST {
-	step := StepAST{}
+	step := StepAST{Pos: toPosition(s.Pos)}
 
 	if s.ID != nil {
 		step.ID = s.ID.Value
@@ -252,25 +208,17 @@ func parseStep(s *actionlint.Step) StepAST {
 	if s.If != nil {
 		step.If = s.If.Value
 	}
-	if s.Pos != nil {
-		step.Pos = SourcePosition{Line: s.Pos.Line, Col: s.Pos.Col}
-	}
-
 	if s.Env != nil {
 		step.Env = parseEnv(s.Env)
 	}
 
-	// Expressions can be found in Run, With, Env, or If
-	var allExprs []ExpressionInfo
+	var expressions []ExpressionInfo
 
 	if s.If != nil {
-		allExprs = append(allExprs, ExtractExpressions(s.If.Value, "if")...)
+		expressions = append(expressions, ExtractExpressions(s.If.Value, "if")...)
 	}
-
-	if step.Env != nil {
-		for key, val := range step.Env {
-			allExprs = append(allExprs, ExtractExpressions(val, "env."+key)...)
-		}
+	for name, value := range step.Env {
+		expressions = append(expressions, ExtractExpressions(value, "env."+name)...)
 	}
 
 	switch exec := s.Exec.(type) {
@@ -278,7 +226,7 @@ func parseStep(s *actionlint.Step) StepAST {
 		step.ExecType = "run"
 		if exec.Run != nil {
 			step.Run = exec.Run.Value
-			allExprs = append(allExprs, ExtractExpressions(exec.Run.Value, "run")...)
+			expressions = append(expressions, ExtractExpressions(exec.Run.Value, "run")...)
 		}
 		if exec.Shell != nil {
 			step.Shell = exec.Shell.Value
@@ -290,18 +238,37 @@ func parseStep(s *actionlint.Step) StepAST {
 		}
 		if len(exec.Inputs) > 0 {
 			step.With = make(map[string]string, len(exec.Inputs))
-			for k, v := range exec.Inputs {
-				if v != nil && v.Value != nil {
-					step.With[k] = v.Value.Value
-					allExprs = append(allExprs, ExtractExpressions(v.Value.Value, "with."+k)...)
+			for name, input := range exec.Inputs {
+				if input != nil && input.Value != nil {
+					step.With[name] = input.Value.Value
+					expressions = append(expressions, ExtractExpressions(input.Value.Value, "with."+name)...)
 				}
 			}
 		}
 	}
 
-	if len(allExprs) > 0 {
-		step.Expressions = allExprs
+	if len(expressions) > 0 {
+		step.Expressions = expressions
 	}
 
 	return step
+}
+
+// toPosition copies an actionlint position. A missing position stays 0:0.
+func toPosition(pos *actionlint.Pos) SourcePosition {
+	if pos == nil {
+		return SourcePosition{}
+	}
+	return SourcePosition{Line: pos.Line, Col: pos.Col}
+}
+
+// stringValues collects the values of a list of YAML strings, skipping nil entries.
+func stringValues(items []*actionlint.String) []string {
+	var values []string
+	for _, item := range items {
+		if item != nil {
+			values = append(values, item.Value)
+		}
+	}
+	return values
 }

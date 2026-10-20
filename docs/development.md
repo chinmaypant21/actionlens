@@ -1,7 +1,7 @@
 # ActionLens Development & Contribution Guide
 
 > [!NOTE]
-> Used AI to help with the formatting
+> used AI for cosmetic purposes
 
 This guide details the architectural philosophy, technology stack, project structure, and workflow for contributing to **ActionLens**.
 

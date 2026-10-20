@@ -1,7 +1,7 @@
 # ActionLens Architecture Specification
 
 > [!NOTE]
-> Used AI to help with the formatting
+> used AI for cosmetic purposes
 
 This document details the architectural design of **ActionLens**, a static analysis (SAST) tool for GitHub Actions workflows.
 
