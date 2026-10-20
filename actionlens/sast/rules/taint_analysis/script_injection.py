@@ -61,7 +61,7 @@ SINKS = {
 # Core OS & Script Execution
     "run",
     "with.script",         # actions/github-script
-    "with.inlineScript",   # azure/CLI
+    "with.inlinescript",   # azure/CLI
     
     # Docker / Container Execution
     "with.args",
@@ -75,6 +75,27 @@ SINKS = {
     "with.ref",
     "with.repository",
 }
+
+def iter_sink_values(step: Any, step_name: str):
+    """Yield configured sink labels and their values for a step."""
+    for sink in sorted(SINKS):
+        if sink == "run":
+            value = step.run
+        elif sink.startswith("with."):
+            input_name = sink.removeprefix("with.")
+            value = next(
+                (
+                    candidate_value
+                    for candidate_name, candidate_value in step.with_.items()
+                    if candidate_name.casefold() == input_name
+                ),
+                None,
+            )
+        else:
+            continue
+
+        if isinstance(value, str) and value:
+            yield f"{step_name}.{sink}", value
 
 def find_source(expr: str) -> list[str] | None:
     """Return a list of untrusted contexts found in the expression."""
@@ -132,8 +153,11 @@ class ScriptInjectionRule(Rule):
         # Perform taint analysis on the built graph
         for path in find_direct_injection_paths(taint_graph):
             sink_node = path[0]
-            unstrusted_input_node = path[1]
+            unstrusted_input_node = path[-1]
             line_number = sink_lines.get(sink_node.value, -1)
+            path_context = " via " + " -> ".join(
+                node.value for node in path[1:-1]
+            ) if len(path) > 2 else ""
             findings.append(Finding(
                 rule_id=self.rule_id,
                 cwe=self.cwe,
@@ -164,52 +188,69 @@ def build_taint_graph(ast: WorkflowAST) -> tuple[TaintGraph, dict[str, int]]:
         for step_index, step in enumerate(job.steps):
             step_name = step.id or step.name or f"step-{step_index}"
 
-            # ---- (1): Find references to variables in execution script ----
-            # Supported exec types are "run" and "action" (with.script, with.ref)
-            exec_type = step.exec_type
-            # According to exec_type, extract variable usage from execution environment
-            match exec_type:
-                case "run":
-                    execution = step.run or ""
-                    execution_label = f"{step_name}.run"
+            # ---- (1): Find references in every configured sink ----
+            for execution_label, execution in iter_sink_values(step, step_name):
+                sink_lines[execution_label] = step.pos.line or -1
+                write_to_githuboutput = extract_write_to_githuboutput(execution)
+                output_label = None
+                if write_to_githuboutput:
+                    output_label = (
+                        f"steps.{step_name}.outputs.{write_to_githuboutput[0]}"
+                    )
 
-                case "action":
-                    if step.with_.get("script", ""):
-                        execution = step.with_.get("script", "")
-                        execution_label = f"{step_name}.with.script"
-                    elif step.with_.get("ref", ""):
-                        execution = step.with_.get("ref", "")
-                        execution_label = f"{step_name}.with.ref"
+                for ucv in find_source(execution) or []:
+                    if output_label:
+                        graph.add_flow(
+                            NodeType.PROPAGATOR,
+                            output_label,
+                            NodeType.SOURCE,
+                            ucv,
+                        )
                     else:
-                        execution = ""
-                        execution_label = f"{step_name}.with.unknown_exec_type"
-                        # TODO error
-
-                case _:
-                    execution = ""
-                    execution_label = f"{step_name}.unknown_exec_type"
-                    # TODO error
-
-            # Create nodes for usage of untrusted contexts in the execution environment
-            untrusted_context_variables = find_source(execution) or []
-            for ucv in untrusted_context_variables:
-                graph.add_flow(NodeType.SINK, execution_label,
-                               NodeType.SOURCE, ucv)
-            used_env_variables = [
-                f"env.{name.lower()}"
-                for name in re.findall(r"\$([A-Za-z_][A-Za-z0-9_]*)", execution)
-                if name != "GITHUB_OUTPUT"
-            ]
-            for uev in used_env_variables:
-                graph.add_flow(NodeType.SINK, execution_label,
-                               NodeType.SANITIZER, uev)
-            write_to_githuboutput = extract_write_to_githuboutput(execution)
-            if write_to_githuboutput:
-                output_name = write_to_githuboutput[0]
-                referenced_vars = write_to_githuboutput[1]
-                for env_var in referenced_vars:
-                    graph.add_flow(NodeType.PROPAGATOR, f"steps.{step_name}.outputs.{output_name}", 
-                                    NodeType.SANITIZER, f"env.{env_var.lower()}")
+                        graph.add_flow(
+                            NodeType.SINK,
+                            execution_label,
+                            NodeType.SOURCE,
+                            ucv,
+                        )
+                used_env_variables = [
+                    f"env.{name.lower()}"
+                    for name in re.findall(r"\$([A-Za-z_][A-Za-z0-9_]*)", execution)
+                    if name != "GITHUB_OUTPUT"
+                ]
+                for uev in used_env_variables:
+                    graph.add_flow(
+                        NodeType.PROPAGATOR if output_label else NodeType.SINK,
+                        output_label or execution_label,
+                        NodeType.SANITIZER,
+                        uev,
+                    )
+                if write_to_githuboutput:
+                    output_name, referenced_vars = write_to_githuboutput
+                    for env_var in referenced_vars:
+                        graph.add_flow(
+                            NodeType.PROPAGATOR,
+                            f"steps.{step_name}.outputs.{output_name}",
+                            NodeType.SANITIZER,
+                            f"env.{env_var.lower()}",
+                        )
+                    for expression in step.expressions:
+                        if (
+                            expression.location
+                            and expression.location.casefold()
+                            == execution_label.removeprefix(f"{step_name}.").casefold()
+                        ):
+                            context_type = (
+                                NodeType.SOURCE
+                                if is_source(expression.context)
+                                else NodeType.PROPAGATOR
+                            )
+                            graph.add_flow(
+                                NodeType.PROPAGATOR,
+                                f"steps.{step_name}.outputs.{output_name}",
+                                context_type,
+                                expression.context,
+                            )
 
             # ---- (2): Trace values of environment variables through the "env field ----
             for variable, value in step.env.items():
@@ -230,8 +271,34 @@ def build_taint_graph(ast: WorkflowAST) -> tuple[TaintGraph, dict[str, int]]:
                 context = expression.context
                 location = expression.location or "<no location>"
                 context_label = NodeType.SOURCE if is_source(context) else NodeType.PROPAGATOR
-                location_label = NodeType.SINK if location in SINKS else NodeType.SANITIZER # when propagator?
-                location = f"{step_name}.{location}" if location in SINKS else location
+                canonical_sink = next(
+                    (sink for sink in SINKS if sink.casefold() == location.casefold()),
+                    None,
+                )
+                output = (
+                    extract_write_to_githuboutput(step.run or "")
+                    if canonical_sink == "run"
+                    else None
+                )
+                output_label = (
+                    f"steps.{step_name}.outputs.{output[0]}"
+                    if output
+                    else None
+                )
+                location_label = (
+                    NodeType.PROPAGATOR
+                    if output_label
+                    else NodeType.SINK
+                    if canonical_sink
+                    else NodeType.SANITIZER
+                )
+                location = (
+                    output_label
+                    if output_label
+                    else f"{step_name}.{canonical_sink}"
+                    if canonical_sink
+                    else location
+                )
                 if location_label is NodeType.SINK:
                     pos = step.pos
                     line = pos.line or -1

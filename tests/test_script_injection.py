@@ -67,6 +67,25 @@ def test_script_injection_with():
     assert "github.event.comment.body" in f1.message
 
 
+def test_advanced_taint():
+    vuln_path = TESTDATA_DIR / "others" / "advanced_taint.yml"
+    ast = parse_workflow_file(vuln_path)
+
+    if CREATE_TAINT_GRAPH:
+        rule = ScriptInjectionRule(visualize_path="advanced_taint.html")
+    else:
+        rule = ScriptInjectionRule()
+    findings = rule.check(ast)
+
+    assert len(findings) == 1
+
+    f1 = findings[0]
+    assert f1.rule_id == "AL-CODE-001"
+    assert f1.severity == Severity.HIGH
+    assert f1.line == 21 # NOTE 27 would be nicer, but the parser is not giving that
+    assert "github.event.head_commit.author.email" in f1.message
+
+
 # ---- Test SECURE workflows ----
 def test_clean_direct_githuboutput():
     safe_path = TESTDATA_DIR / "secure" / "script_injections" / "clean_direct_githuboutput.yml"
