@@ -6,6 +6,9 @@ import networkx as nx
 
 from actionlens.models import Finding, Rule, WorkflowAST
 from actionlens.sast.rules.catalog import RULE_CATALOG
+from actionlens.sast.rules.taint_analysis.script_injection import (
+	iter_sink_values,
+)
 
 try:
 	from .taint_graph import NodeType, TaintGraph
@@ -23,7 +26,7 @@ UNTRUSTED_CHECKOUT_CONTEXTS = {
 
 
 class UntrustedCheckoutRule(Rule):
-	"""Detect an untrusted PR ref checked out under ``pull_request_target``."""
+	"""Detect untrusted checked-out code reaching an execution sink."""
 
 	metadata = RULE_CATALOG["AL-CODE-002"]
 
@@ -45,8 +48,9 @@ class UntrustedCheckoutRule(Rule):
 				file_path=ast.file_path,
 				line=sink_lines.get(sink_node.value, -1),
 				message=(
-					f"Untrusted pull request ref '{source_node.value}' is checked out "
-					"under the privileged pull_request_target trigger."
+					f"Untrusted pull request ref '{source_node.value}' reaches "
+					f"execution sink '{sink_node.value}' under the privileged "
+					"pull_request_target trigger."
 				),
 				remediation=self.remediation,
 			))
@@ -66,6 +70,7 @@ def build_taint_graph(ast: WorkflowAST) -> tuple[TaintGraph, dict[str, int]]:
 		return graph, sink_lines
 
 	for job in ast.jobs:
+		checkout_nodes: list[tuple[int, str]] = []
 		for step_index, step in enumerate(job.steps):
 			if not step.uses or step.uses.owner != "actions" or step.uses.repo != "checkout":
 				continue
@@ -81,8 +86,24 @@ def build_taint_graph(ast: WorkflowAST) -> tuple[TaintGraph, dict[str, int]]:
 				if expression.context not in UNTRUSTED_CHECKOUT_CONTEXTS:
 					continue
 
-				graph.add_flow(NodeType.SINK, sink, NodeType.SOURCE, expression.context)
-				sink_lines[sink] = step.pos.line or -1
+				graph.add_flow(NodeType.PROPAGATOR, sink, NodeType.SOURCE, expression.context)
+				checkout_nodes.append((step_index, sink))
+
+		for checkout_index, checkout_node in checkout_nodes:
+			for step_index, step in enumerate(job.steps):
+				if step_index <= checkout_index:
+					continue
+				for execution_sink, _ in iter_sink_values(
+					step,
+					step.id or step.name or f"step-{step_index}",
+				):
+					graph.add_flow(
+						NodeType.SINK,
+						execution_sink,
+						NodeType.PROPAGATOR,
+						checkout_node,
+					)
+					sink_lines[execution_sink] = step.pos.line or -1
 
 	return graph, sink_lines
 
