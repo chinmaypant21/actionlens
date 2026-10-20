@@ -1,4 +1,12 @@
-name: n clean direct
+# Status: SECURE
+# Rule: AL-CODE-001 (Script injection)
+# Secure: Although ${{ steps.<id>.outputs.<var> }} is used directly in run,
+#         the initial input does not contain an untrusted input.
+
+# This example motivates a thorough, graph-based taint analysis. 
+# When treating every instance of ${{ steps.<id>.output.<var> }} as tainted this 
+# would produce a false positive.
+name: clean direct githuboutput
 on: pull_request_target
 jobs:
   j:

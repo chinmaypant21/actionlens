@@ -1,4 +1,8 @@
-name: n tainted env
+# Status: SECURE
+# Rule: AL-CODE-001 (Script injection)
+# Secure: ${{ steps.<id>.outputs.<var> }} is tainted but securely passed
+#         through an environment variable before being used in run.
+name: tainted env-tunneled githuboutput
 on: pull_request_target
 jobs:
   j:

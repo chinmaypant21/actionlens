@@ -1,4 +1,10 @@
-name: p tainted direct
+# Status: VULNERABLE
+# Rule: AL-CODE-001 (Script / Expression Injection)
+# Insecure: First, ${{ github.event.pull_request.title }} is sanitized by passing it through
+#           an environment variable. Passing it to Github_Output, however, de-sanitizes it 
+#           because ${{ steps.x.output.out }} is being interpolated directly into run.
+
+name: tainted direct githuboutput
 on: pull_request_target
 jobs:
   j:
