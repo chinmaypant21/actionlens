@@ -18,7 +18,6 @@ class Severity(str, Enum):
 class RuleCategory(str, Enum):
     LINT = "Linter"
     CODE_ANALYSIS = "Code Analysis"
-    DAST = "DAST Verification"
 
 
 class SourcePosition(BaseModel):

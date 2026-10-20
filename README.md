@@ -1,25 +1,27 @@
 # ActionLens 👾
 
-**ActionLens** is a static and dynamic analysis tool (SAST + DAST) designed to audit GitHub Actions CI/CD workflows for security vulnerabilities, unsafe data flows, and configuration weaknesses.
+**ActionLens** is a static analysis tool (SAST) designed to audit GitHub Actions CI/CD workflows for security vulnerabilities, unsafe data flows, and configuration weaknesses.
 
 ---
 
 ## Objectives & Scope
 
-Modern CI/CD pipelines hold privileged access to source code, cloud credentials, production environments, and release artifacts. ActionLens targets security risks in workflow definitions across two coordinated layers:
+Modern CI/CD pipelines hold privileged access to source code, cloud credentials, production environments, and release artifacts. ActionLens targets security risks in workflow definitions through static analysis. A dynamic layer is described below only as possible future work:
 
 ### 1. Static Analysis (SAST)
 - **Semantic Code & Taint Analysis:**
-  - Evaluates untrusted data flows from external triggers (e.g., `pull_request_target`, `issue_comment`, `workflow_run`) to dangerous execution sinks (e.g., inline shell scripts via `${{ github.event... }}`).
-  - Analyzes privilege over-scoping (default permissions vs. explicit least-privilege tokens).
+  - Evaluates untrusted data flows from event contexts (e.g., issue titles, PR bodies, comments, branch names) to dangerous execution sinks (e.g., inline shell scripts via `${{ github.event... }}` or `actions/github-script` inputs), including flows through step `env:` variables and step outputs.
+  - Detects untrusted pull request code checked out under the privileged `pull_request_target` trigger.
 - **Security Linting:**
-  - AST-based pattern matching for supply-chain risks (e.g., unpinned third-party actions using mutable tags like `@v1` or `@main` instead of immutable commit SHAs).
-  - Dangerous configuration patterns (e.g., insecure checkouts, missing environment isolation).
+  - AST-based pattern matching for supply-chain risks: unpinned third-party actions using mutable tags like `@v1` or `@main` instead of immutable commit SHAs, and typo-squatted or impersonated action namespaces.
+  - Privilege and runner misconfiguration: missing or over-scoped `permissions:` blocks and self-hosted runners.
 
-### 2. DAST Exploit Harness (FUTURE SCOPE)
+### 2. DAST Exploit Harness (Future Scope, Not Implemented)
+> Not part of the current project.
+
 - **API Orchestrator & Log Verifier:**
-  - In controlled environments (test repositories / ephemeral runners), triggers and orchestrates targeted execution of flagged workflows.
-  - Verifies whether an identified candidate vulnerability is genuinely exploitable by inspecting execution traces and runner logs.
+  - Would trigger targeted runs of flagged workflows in controlled environments (test repositories / ephemeral runners).
+  - Would check whether a candidate vulnerability is exploitable by inspecting execution traces and runner logs.
 
 ---
 
@@ -33,8 +35,8 @@ flowchart TD
     %% Stage 1: SAST
     subgraph SAST["1. Static Analysis (SAST)"]
         direction TB
-        Parser --> Lint["🔍 Security Linter<br/><b>Pattern & Config Checks</b><br/>• Unpinned 3rd-party actions<br/>• Missing default permissions"]
-        Parser --> Dataflow["🌊 Dataflow & Taint Analysis<br/><b>Code & Injection Checks</b><br/>• Untrusted inputs <i>(issue body, PR title)</i><br/>• Unsafe execution in <code>run:</code> scripts<br/>• Excessive token permissions"]
+        Parser --> Lint["🔍 Security Linter<br/><b>Pattern & Config Checks</b><br/>• Unpinned 3rd-party actions<br/>• Typo-squatted action namespaces<br/>• Missing or over-scoped permissions<br/>• Self-hosted runners"]
+        Parser --> Dataflow["🌊 Dataflow & Taint Analysis<br/><b>Code & Injection Checks</b><br/>• Untrusted inputs <i>(issue body, PR title)</i><br/>• Unsafe execution in <code>run:</code> scripts and action inputs<br/>• Untrusted checkout under <code>pull_request_target</code>"]
     end
 
     %% Findings (Bridge between SAST and DAST)
@@ -43,14 +45,15 @@ flowchart TD
 
     Findings --> StaticReport["📊 Static Security Report"]
 
-    %% Stage 2: DAST
-    subgraph DAST["2. Dynamic Verification (DAST)"]
+    %% Future scope only: DAST is not implemented
+    subgraph DAST["Future Scope (not implemented): Dynamic Verification (DAST)"]
         direction TB
         Trigger["Test Orchestrator<br/>Triggers test workflow via GitHub API<br/>with a safe payload"]
         Trigger --> Logs["📜 Log & Trace Verifier<br/>Inspects workflow runner execution logs<br/>to confirm if canary executed"]
     end
 	Findings -. "Future Scope" .-> Trigger
     Logs --> Verified["📝 Verified Exploit Report"]
+    style DAST stroke-dasharray: 5 5
 ```
 
 For detailed specifications, see:
@@ -62,7 +65,7 @@ For detailed specifications, see:
 ## Usage
 
 ### 1. Prerequisites
-- **Go 1.21+** (for building the AST parser)
+- **Go** (version per `parser/go.mod`, currently 1.27.1) for building the AST parser
 - **Python 3.10+** (for the security analysis engine)
 
 ### 2. Build the Go Parser
@@ -115,13 +118,15 @@ actionlens/
 ├── README.md                  # Project overview and roadmap
 ├── docs/                      # Architectural specifications & documentation
 │   ├── architecture.md        # Technical architecture
-│   ├── vulnerability-matrix.md# Catalog of targeted vulnerabilitie
+│   ├── vulnerability-matrix.md# Catalog of targeted vulnerabilities
 │   ├── development.md         # Development guideline and LLD
 │   └── rules/                 # Detection rule specifications
 ├── parser/                    # Go-based AST parser (actionlint wrapper)
 │   ├── main.go                # Emits normalized AST JSON
 │   ├── parser.go              # Workflow and expression parser
+│   ├── expression.go          # Expression context & action reference parsing
 │   ├── models.go              # Normalized AST Go structs
+│   ├── parser_test.go         # Go parser tests
 │   ├── go.mod
 │   └── go.sum
 ├── actionlens/                # Core Python package (SAST, Taint, CLI)
@@ -146,4 +151,4 @@ actionlens/
 
 ## 📜 License
 
-[MIT](file:///Users/chinz/projects/KTH/actionlens/LICENSE)
+[MIT](LICENSE)

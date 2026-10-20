@@ -48,7 +48,7 @@ workflow.yml ──► parser/actionlens-parser (Go) ──► AST JSON on stdou
 | `AL-LINT-003` | `PermissionsBlockRule` | `lint/permissions_block.py` | LOW | Missing top-level `permissions:` (LOW). `write-all` at the top level or in a job, including per-scope values (MEDIUM). |
 | `AL-LINT-004` | `SelfHostedRunnerRule` | `lint/self_hosted_runner.py` | HIGH | `self-hosted` runner label. HIGH with untrusted triggers, MEDIUM otherwise. |
 | `AL-CODE-001` | `ScriptInjectionRule` | `taint_analysis/script_injection.py` | HIGH | An untrusted context reaches a sink (`run`, `with.script`, `with.args`, `with.ref`, …) without a sanitizer. This includes flows through `env.*` and `$GITHUB_OUTPUT` step outputs. |
-| `AL-CODE-002` | `UntrustedCheckoutRule` | `taint_analysis/untrusted_checkout.py` | HIGH | `actions/checkout` with `with.ref` set to a PR head ref or SHA under `pull_request_target`. |
+| `AL-CODE-002` | `UntrustedCheckoutRule` | `taint_analysis/untrusted_checkout.py` | HIGH | `actions/checkout` with `with.ref` set to a PR head ref or SHA under `pull_request_target`, followed by a later step in the same job that runs a sink. |
 
 All findings carry `rule_id`, `severity`, `file_path`, `line`, `message`, `remediation`, `cwe`, and `owasp_cicd` (an OWASP Top 10 CI/CD Security Risks category). Rules may override the default severity on individual findings.
 
@@ -135,7 +135,7 @@ python -m actionlens <file>                                   # same, without in
 
 ## 8. Rules for Agents
 
-- **Verify against the code, not the docs.** `docs/architecture.md` and `docs/development.md` still describe some planned items as if they exist: `sast/taint.py`, `rules/codeanalysis/`, `sast/linter.py`, `dast/`, SARIF, and typer/click subcommands. Treat those as roadmap. If your change makes a doc statement true or more wrong, update the doc.
+- **Verify against the code, not the docs.** The docs were brought in line with the code, but they can drift again. DAST and SARIF are future scope and the docs mark them that way. If your change makes a doc statement true or more wrong, update the doc.
 - **Keep lint rules AST-only.** Anything that needs to follow values across env vars, outputs, or steps belongs in `taint_analysis/`.
 - **Prefer precision over recall.** A new heuristic that adds false positives on `testdata/secure/` is a regression.
 - **Keep tests offline and deterministic.** No network calls, and no GitHub API calls in tests.

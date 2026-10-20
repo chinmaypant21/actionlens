@@ -1,6 +1,6 @@
 package main
 
-// SourcePosition records line and column number of AST elements for SARIF reporting
+// SourcePosition records line and column number of AST elements so findings can point to a location
 type SourcePosition struct {
 	Line int `json:"line"`
 	Col  int `json:"col"`
