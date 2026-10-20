@@ -1,6 +1,6 @@
 """Pydantic data models for ActionLens normalized AST, rules, and findings."""
 
-# Used Claude Opus 4.6 for setting up this
+# Used Claude Opus 4.6 for cleaning the code and documenting it
 
 from abc import ABC, abstractmethod
 from enum import Enum

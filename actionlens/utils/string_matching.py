@@ -1,5 +1,6 @@
 """String and text matching utility functions."""
 
+# Generated with Gemini 3.8 Flash
 
 def levenshtein_distance(s1: str, s2: str) -> int:
     """Calculate the Levenshtein edit distance between two strings."""

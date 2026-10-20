@@ -73,7 +73,6 @@ This design is a practical compromise based on existing open-source tooling and 
 | [`argparse`](https://docs.python.org/3/library/argparse.html) (standard library) | CLI entry point: `actionlens <file> [--format cli\|json]`. |
 | [`rich`](https://rich.readthedocs.io/) | Colorized, human-readable terminal output and finding summaries. |
 | [`pyvis`](https://pyvis.readthedocs.io/) | Optional interactive HTML visualization of taint graphs (`visualize_path=` on a taint rule). |
-| [`pytest`](https://docs.pytest.org/) | Offline unit and integration test runner for rule fixtures. |
 
 No GitHub API client is used. Dynamic verification (DAST), which would need one, is future scope.
 
@@ -241,7 +240,7 @@ actionlens/
 │   ├── __main__.py            # Enables `python -m actionlens`
 │   ├── cli.py                 # CLI entry point (scan a workflow, cli or json output)
 │   ├── parser.py              # Invokes parser binary and loads AST JSON
-│   ├── models.py              # Pydantic schemas (AST, Rule, Finding, RuleMetadata)
+│   ├── models.py              # Pydantic schemas (AST, Rule, Finding, etc)
 │   ├── sast/
 │   │   ├── orchestrator.py    # SASTOrchestrator: runs all registered rules
 │   │   └── rules/
@@ -251,11 +250,10 @@ actionlens/
 │   ├── reporting/
 │   │   └── formatter.py       # Rich CLI table and JSON formatters
 │   └── utils/                 # Helpers (Levenshtein distance)
-├── testdata/                  # Test workflows
+├── testdata/                  
 │   ├── vulnerable/            # Vulnerable workflow samples for regression tests
 │   ├── secure/                # Remediated & safe workflow samples
-│   └── others/                # Larger exploratory workflows (not used by tests)
-├── tests/                     # Pytest test suite
+│   └── others/                # Larger exploratory workflows for testing
 ├── pyproject.toml             # Python packaging & dependencies
 └── requirements.txt
 ```
@@ -304,9 +302,3 @@ python3 -m actionlens testdata/vulnerable/excessive_permissions.yml
 actionlens testdata/vulnerable/excessive_permissions.yml --format json
 ```
 You can also pass a pre-generated AST JSON file instead of a workflow YAML file. The command exits with code `1` if any finding is HIGH or CRITICAL, and `0` otherwise.
-
-### 5. Run the Test Suite
-The Python tests run against the built parser binary, so build it first (step 2).
-```bash
-pytest -v tests/
-```

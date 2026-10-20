@@ -14,6 +14,9 @@
 | [Contributor Guide](AGENTS.md)                       | How to add or change a rule, project conventions, and known gaps.                                                                             |
 
 
+### AI Use
+Where AI tools helped in documentation/formatting, this is noted in a comment in the relevant file
+
 <!-- Academic report content goes here. -->
 
 ---
