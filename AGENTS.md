@@ -31,7 +31,7 @@ workflow.yml ──► parser/actionlens-parser (Go) ──► AST JSON on stdou
 | `actionlens/sast/rules/lint/` | AST-only structural rules (`AL-LINT-*`). |
 | `actionlens/sast/rules/taint_analysis/` | Data-flow rules (`AL-CODE-*`), the `TaintGraph` (`networkx.DiGraph` subclass), and an optional pyvis visualizer. |
 | `actionlens/sast/orchestrator.py` | `SASTOrchestrator`. It holds the list of active rules, accepts YAML, AST JSON, or a `WorkflowAST`, and sorts findings by `(file_path, line)`. |
-| `actionlens/reporting/formatter.py` | `format_cli_table` (rich, with a plain-text fallback) and `format_findings_json`. |
+| `actionlens/reporting/formatter.py` | `format_cli_table` (rich table) and `format_findings_json`. |
 | `actionlens/cli.py` | `actionlens <file> [--format cli\|json]`. Exits with `1` if any finding is HIGH or CRITICAL, otherwise `0`. |
 | `actionlens/utils/` | Helpers (currently `levenshtein_distance`). |
 | `docs/` | `architecture.md`, `vulnerability-matrix.md`, `development.md`, and per-rule specs in `docs/rules/`. |

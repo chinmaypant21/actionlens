@@ -144,7 +144,7 @@ A future DAST layer would be an optional validation harness that verifies candid
 ## 4. Reporting (`actionlens/reporting/formatter.py`)
 
 ActionLens supports two output formats, chosen with `--format`:
-- **Terminal (`cli`, default):** A table rendered with `rich`, with columns for rule ID, severity, OWASP CI/CD category, message, and remediation. If `rich` is not installed, a plain-text report is printed instead, which also shows the file and line of each finding.
+- **Terminal (`cli`, default):** A table rendered with `rich`, with columns for rule ID, severity, line, OWASP CI/CD category, message, and remediation.
 - **JSON (`json`):** A list of findings, each with `rule_id`, `severity`, `file_path`, `line`, `message`, `remediation`, `cwe`, and `owasp_cicd`. When there are no findings, a single `message` object is printed instead.
 
 The CLI exits with code `1` if any finding is HIGH or CRITICAL, and `0` otherwise.
