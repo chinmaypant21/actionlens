@@ -7,9 +7,12 @@ from actionlens.sast.rules.catalog import RULE_CATALOG
 UNTRUSTED_TRIGGERS: set[str] = {
     "pull_request",
     "pull_request_target",
+    "pull_request_review",
+    "pull_request_review_comment",
     "issue_comment",
     "issues",
     "discussion",
+    "discussion_comment",
     "workflow_run",
 }
 

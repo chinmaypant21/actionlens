@@ -1,7 +1,6 @@
 """Source of truth for ActionLens rule metadata.
 
-Rule classes hold detection logic only and look up their metadata here by ID.
-To add a rule, register its metadata in RULE_CATALOG and set
+To add a rule, register its metadata here and set
 ``metadata = RULE_CATALOG["<rule-id>"]`` on the rule class.
 """
 

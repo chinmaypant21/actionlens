@@ -34,7 +34,7 @@ workflow.yml ──► parser/actionlens-parser (Go) ──► AST JSON on stdou
 | `actionlens/reporting/formatter.py` | `format_cli_table` (rich table) and `format_findings_json`. |
 | `actionlens/cli.py` | `actionlens <file> [--format cli\|json]`. Exits with `1` if any finding is HIGH or CRITICAL, otherwise `0`. |
 | `actionlens/utils/` | Helpers (currently `levenshtein_distance`). |
-| `docs/` | `architecture.md`, `vulnerability-matrix.md`, `development.md`, and per-rule specs in `docs/rules/`. |
+| `docs/` | `architecture.md`, `vulnerability-matrix.md`, and `development.md`. |
 | `research/` | Research notes (e.g. `sources_and_sinks.md`). This is input for the rule design, not the specification of the code. |
 
 ---
@@ -90,7 +90,7 @@ Expressions are extracted per step from `if`, `env.<KEY>`, `run`, and `with.<inp
 
 ## 6. Adding or Changing a Rule
 
-1. **Document it.** Add a row to `docs/vulnerability-matrix.md`. For non-trivial rules, also add a spec in `docs/rules/<rule_name>.md`.
+1. **Document it.** Add a row to `docs/vulnerability-matrix.md`.
 2. **Register the metadata** in `_CATALOG` in `actionlens/sast/rules/catalog.py`: `name`, `severity`, `category`, `description`, `cwe`, `owasp_cicd`, `remediation`. Missing or misspelled fields fail at import time.
 3. **Implement the rule:**
    - Lint: `actionlens/sast/rules/lint/<rule_name>.py`, also exported from `lint/__init__.py`.

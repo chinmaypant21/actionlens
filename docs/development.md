@@ -224,8 +224,7 @@ actionlens/
 ├── docs/                      # Architectural specifications and documentation
 │   ├── architecture.md        # Technical architecture
 │   ├── vulnerability-matrix.md# Catalog of targeted vulnerabilities
-│   ├── development.md         # This development guide
-│   └── rules/                 # Per-rule specifications
+│   └── development.md         # This development guide
 ├── research/                  # Research notes (e.g. taint sources and sinks)
 ├── parser/                    # Go Workflow Parser
 │   ├── main.go                # CLI entry point; reads YAML (file or stdin), emits JSON
