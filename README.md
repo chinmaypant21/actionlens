@@ -17,7 +17,10 @@
 ### AI Use
 Where AI tools helped in documentation/formatting, this is noted in a comment in the relevant file
 
-<!-- Academic report content goes here. -->
+---
+
+## 📄 Report
+The report can be found at [Report.pdf](Report.pdf). The Latex project can be found at [projectReport/](/projectReport).
 
 ---
 
