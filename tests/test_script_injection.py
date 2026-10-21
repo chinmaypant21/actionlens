@@ -46,7 +46,7 @@ def test_inject_via_githuboutput():
     f1 = findings[0]
     assert f1.rule_id == "AL-CODE-001"
     assert f1.severity == Severity.HIGH
-    assert f1.line == 11
+    assert f1.line == 17
     assert "steps.x.outputs.out" in f1.message
 
 
